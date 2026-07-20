@@ -1,0 +1,29 @@
+{
+  "name": "kido",
+  "version": "0.1.0",
+  "description": "Spec-driven BA/Dev collaboration CLI for greenfield and brownfield microservices",
+  "type": "module",
+  "license": "UNLICENSED",
+  "bin": {
+    "kido": "./bin/kido.js"
+  },
+  "files": [
+    "dist/cli.js",
+    "bin"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "node build.js",
+    "prepare": "node build.js",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run build && node --test dist/**/*.test.js",
+    "dev": "node build.js --watch"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "esbuild": "^0.28.1",
+    "typescript": "^5.7.0"
+  }
+}
