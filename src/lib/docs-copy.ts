@@ -4,7 +4,7 @@ import { resolveKidoPaths } from "./kido-paths.js";
 
 /**
  * Copies one repo's kido/docs/* into another's, as a literal seed
- * (decision #50's first half — the second half, re-running /kido:study
+ * (decision #50's first half — the second half, re-running /kido:specify
  * seeded with this copy, happens in the skill layer, not here).
  */
 export function copyKidoDocs(fromRepoRoot: string, toRepoRoot: string): { copied: boolean; reason?: string } {

@@ -1,0 +1,782 @@
+<title>Kido — Pipeline Runbook</title>
+<meta name="description" content="The eight-stage Kido workflow, step by step, with the actual output produced at each stage." />
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0710'/%3E%3Cline x1='16' y1='7' x2='16' y2='3' stroke='%23facc15' stroke-width='2' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='3' r='1.7' fill='%23facc15'/%3E%3Crect x='5' y='8' width='22' height='19' rx='6' stroke='%23facc15' stroke-width='2'/%3E%3Ccircle cx='12' cy='17.5' r='2.3' fill='%23facc15'/%3E%3Ccircle cx='20' cy='17.5' r='2.3' fill='%23facc15'/%3E%3Crect x='11' y='22.5' width='10' height='2.2' rx='1.1' fill='%23facc15' opacity='0.85'/%3E%3C/svg%3E" />
+<style>
+  :root {
+    --paper: #0b0710;
+    --paper-raised: #17101f;
+    --ink: #ede8f7;
+    --ink-soft: #a89bc9;
+    --rule: #2c2140;
+    --brass: #a855f7;
+    --brass-ink: #c9a6ff;
+    --ledger: #7c6fe0;
+    --ledger-soft: #5f52b8;
+    --term-bg: #08050d;
+    --term-ink: #e4defa;
+    --term-dim: #6b5f8a;
+    --term-accent: #c084fc;
+    --term-green: #7fe0a0;
+    --yellow: #facc15;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 32px -16px rgba(88, 28, 168, 0.45);
+  }
+
+  :root[data-theme="dark"] {
+    --paper: #0b0710;
+    --paper-raised: #17101f;
+    --ink: #ede8f7;
+    --ink-soft: #a89bc9;
+    --rule: #2c2140;
+    --brass: #a855f7;
+    --brass-ink: #c9a6ff;
+    --ledger: #7c6fe0;
+    --ledger-soft: #5f52b8;
+    --term-bg: #08050d;
+    --term-ink: #e4defa;
+    --term-dim: #6b5f8a;
+    --term-accent: #c084fc;
+    --term-green: #7fe0a0;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 32px -16px rgba(88, 28, 168, 0.45);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #0b0710;
+      --paper-raised: #17101f;
+      --ink: #ede8f7;
+      --ink-soft: #a89bc9;
+      --rule: #2c2140;
+      --brass: #a855f7;
+      --brass-ink: #c9a6ff;
+      --ledger: #7c6fe0;
+      --ledger-soft: #5f52b8;
+      --term-bg: #08050d;
+      --term-ink: #e4defa;
+      --term-dim: #6b5f8a;
+      --term-accent: #c084fc;
+      --term-green: #7fe0a0;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 32px -16px rgba(88, 28, 168, 0.45);
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: -apple-system, "Segoe UI", system-ui, Roboto, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3 {
+    font-family: Georgia, "Iowan Old Style", "Palatino Linotype", "Hoefler Text", serif;
+    text-wrap: balance;
+    font-weight: 400;
+    margin: 0;
+  }
+
+  code, pre, .mono {
+    font-family: "SF Mono", "Cascadia Code", Consolas, "Roboto Mono", monospace;
+  }
+
+  a { color: var(--ledger); }
+  a:focus-visible, button:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--brass);
+    outline-offset: 2px;
+  }
+
+  /* ---------- Masthead ---------- */
+
+  .masthead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: color-mix(in srgb, var(--paper) 92%, transparent);
+    backdrop-filter: blur(6px);
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .masthead-inner {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 14px 24px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .masthead-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 1.05rem;
+    letter-spacing: 0.02em;
+  }
+
+  .masthead-title .rule-dot {
+    color: var(--brass);
+    margin: 0 0.5em;
+  }
+
+  .kido-logo {
+    flex: none;
+    filter: drop-shadow(0 0 5px color-mix(in srgb, var(--yellow) 65%, transparent));
+  }
+
+  .kido-logo.hero {
+    filter: drop-shadow(0 0 10px color-mix(in srgb, var(--yellow) 55%, transparent));
+  }
+
+  .stage-nav {
+    display: flex;
+    gap: 2px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .stage-nav::-webkit-scrollbar { display: none; }
+
+  .stage-nav a {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 1px solid var(--rule);
+    color: var(--ink-soft);
+    text-decoration: none;
+    font-size: 0.72rem;
+    font-variant-numeric: tabular-nums;
+    transition: border-color 120ms ease, color 120ms ease;
+  }
+  .stage-nav a:hover {
+    border-color: var(--brass);
+    color: var(--brass-ink);
+  }
+
+  /* ---------- Header block ---------- */
+
+  .intro {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 56px 24px 32px;
+  }
+
+  .eyebrow {
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--brass-ink);
+    margin: 0 0 14px;
+  }
+
+  .intro h1 {
+    font-size: 2.1rem;
+    line-height: 1.2;
+    margin-bottom: 14px;
+  }
+
+  .intro p {
+    max-width: 62ch;
+    color: var(--ink-soft);
+    font-size: 1.02rem;
+  }
+
+  .intro .scenario {
+    margin-top: 20px;
+    padding: 14px 18px;
+    border-left: 2px solid var(--brass);
+    background: var(--paper-raised);
+    font-size: 0.94rem;
+    color: var(--ink-soft);
+  }
+  .intro .scenario b { color: var(--ink); font-weight: 600; }
+
+  /* ---------- Pipeline spine ---------- */
+
+  .pipeline {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+    position: relative;
+  }
+
+  .stage {
+    position: relative;
+    padding: 40px 0 0 56px;
+    scroll-margin-top: 70px;
+  }
+
+  .stage::before {
+    /* connecting spine line */
+    content: "";
+    position: absolute;
+    left: 17px;
+    top: 0;
+    bottom: -40px;
+    width: 1px;
+    background: var(--rule);
+  }
+  .stage:last-child::before { display: none; }
+
+  .stage-badge {
+    position: absolute;
+    left: 0;
+    top: 40px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--paper-raised);
+    border: 1px solid var(--rule);
+    display: grid;
+    place-items: center;
+    font-family: Georgia, serif;
+    font-size: 0.95rem;
+    color: var(--brass-ink);
+    font-variant-numeric: tabular-nums;
+    box-shadow: var(--shadow);
+  }
+
+  .stage-kicker {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+
+  .stage-command {
+    font-family: "SF Mono", Consolas, monospace;
+    font-size: 0.95rem;
+    color: var(--ledger-soft);
+    background: color-mix(in srgb, var(--ledger) 10%, transparent);
+    padding: 2px 8px;
+    border-radius: 3px;
+  }
+
+  .stage-tag {
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: 2px 7px;
+  }
+
+  .stage h2 {
+    font-size: 1.32rem;
+    margin-bottom: 10px;
+  }
+
+  .stage .lede {
+    color: var(--ink-soft);
+    max-width: 64ch;
+    margin-bottom: 18px;
+  }
+
+  .stage .lede b { color: var(--ink); font-weight: 600; }
+
+  /* ---------- Output panels ---------- */
+
+  .output-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin: 18px 0 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .output-label::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--rule);
+  }
+
+  .term {
+    background: var(--term-bg);
+    color: var(--term-ink);
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+
+  .term-chrome {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .term-chrome span {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #3a4150;
+  }
+  .term-chrome .path {
+    margin-left: 8px;
+    font-size: 0.72rem;
+    color: var(--term-dim);
+    font-family: "SF Mono", Consolas, monospace;
+  }
+
+  .term pre {
+    margin: 0;
+    padding: 14px 16px 16px;
+    overflow-x: auto;
+    font-size: 0.83rem;
+    line-height: 1.55;
+    white-space: pre;
+  }
+
+  .term .prompt { color: var(--term-accent); }
+  .term .dim { color: var(--term-dim); }
+  .term .ok { color: var(--term-green); }
+  .term .file { color: var(--term-accent); }
+
+  .filecard {
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    background: var(--paper-raised);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+  .filecard .filecard-head {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--rule);
+    font-size: 0.76rem;
+    color: var(--ink-soft);
+    font-family: "SF Mono", Consolas, monospace;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .filecard .filecard-head .tag {
+    color: var(--brass-ink);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 0.66rem;
+  }
+  .filecard pre {
+    margin: 0;
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-size: 0.85rem;
+    line-height: 1.65;
+    white-space: pre-wrap;
+    color: var(--ink);
+  }
+  .filecard pre .h { color: var(--brass-ink); font-weight: 600; }
+  .filecard pre .muted { color: var(--ink-soft); }
+
+  .note {
+    font-size: 0.86rem;
+    color: var(--ink-soft);
+    border-left: 2px solid var(--rule);
+    padding-left: 12px;
+    margin: 14px 0;
+  }
+  .note b { color: var(--ink); font-weight: 600; }
+
+  .asks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 4px 0 16px;
+  }
+  .asks span {
+    font-size: 0.78rem;
+    padding: 3px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--rule);
+    color: var(--ink-soft);
+    background: var(--paper-raised);
+  }
+  .asks span.ask::before { content: "? "; color: var(--brass-ink); }
+
+  /* ---------- Footer ---------- */
+
+  .colophon {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 0 24px 64px;
+    color: var(--ink-soft);
+    font-size: 0.84rem;
+    border-top: 1px solid var(--rule);
+    padding-top: 24px;
+  }
+
+  @media (max-width: 560px) {
+    .stage { padding-left: 44px; }
+    .stage-badge { width: 30px; height: 30px; font-size: 0.85rem; }
+    .stage::before { left: 14px; }
+    .intro h1 { font-size: 1.7rem; }
+  }
+</style>
+
+<div class="masthead">
+  <div class="masthead-inner">
+    <div class="masthead-title">
+      <svg class="kido-logo" width="24" height="24" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <line x1="16" y1="7" x2="16" y2="3" stroke="var(--yellow)" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="16" cy="3" r="1.7" fill="var(--yellow)"/>
+        <rect x="5" y="8" width="22" height="19" rx="6" stroke="var(--yellow)" stroke-width="2"/>
+        <rect x="1.5" y="14" width="3" height="7" rx="1.5" fill="var(--yellow)"/>
+        <rect x="27.5" y="14" width="3" height="7" rx="1.5" fill="var(--yellow)"/>
+        <circle cx="12" cy="17.5" r="2.3" fill="var(--yellow)"/>
+        <circle cx="20" cy="17.5" r="2.3" fill="var(--yellow)"/>
+        <rect x="11" y="22.5" width="10" height="2.2" rx="1.1" fill="var(--yellow)" opacity="0.85"/>
+      </svg>
+      Kido<span class="rule-dot">·</span><span class="mono" style="font-size:0.85rem; color:var(--ink-soft);">pipeline runbook</span>
+    </div>
+    <nav class="stage-nav" aria-label="Jump to stage">
+      <a href="#s0" title="kido init">0</a>
+      <a href="#s1" title="/kido:document">1</a>
+      <a href="#s2" title="/kido:specify">2</a>
+      <a href="#s3" title="/kido:tasks">3</a>
+      <a href="#s4" title="kido jira pull + branch">4</a>
+      <a href="#s5" title="/kido:apply">5</a>
+      <a href="#s6" title="/kido:review">6</a>
+      <a href="#s7" title="/kido:archive">7</a>
+    </nav>
+  </div>
+</div>
+
+<div class="intro">
+  <svg class="kido-logo hero" width="52" height="52" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="margin-bottom: 18px;">
+    <line x1="16" y1="7" x2="16" y2="3" stroke="var(--yellow)" stroke-width="1.6" stroke-linecap="round"/>
+    <circle cx="16" cy="3" r="1.7" fill="var(--yellow)"/>
+    <rect x="5" y="8" width="22" height="19" rx="6" stroke="var(--yellow)" stroke-width="1.6"/>
+    <rect x="1.5" y="14" width="3" height="7" rx="1.5" fill="var(--yellow)"/>
+    <rect x="27.5" y="14" width="3" height="7" rx="1.5" fill="var(--yellow)"/>
+    <circle cx="12" cy="17.5" r="2.3" fill="var(--yellow)"/>
+    <circle cx="20" cy="17.5" r="2.3" fill="var(--yellow)"/>
+    <rect x="11" y="22.5" width="10" height="2.2" rx="1.1" fill="var(--yellow)" opacity="0.85"/>
+  </svg>
+  <p class="eyebrow">Reference — end to end</p>
+  <h1>Eight stages, one feature, real output</h1>
+  <p>Every command in the Kido pipeline, in the order they actually run, showing exactly what each one produces — the files it writes, the questions it asks, the Jira and git actions it takes. BA has no git push access, so Jira — not git — is what carries the spec from BA to Dev.</p>
+  <div class="scenario">
+    Worked example throughout: <b>pricing-service</b>, an existing (brownfield) microservice, gaining a new capability — <b>Swap Pricing</b> against the current curve model.
+  </div>
+</div>
+
+<div class="pipeline">
+
+  <!-- STAGE 0 -->
+  <section class="stage" id="s0">
+    <div class="stage-badge">0</div>
+    <div class="stage-kicker">
+      <span class="stage-command">kido init</span>
+      <span class="stage-tag">CLI · one-time per repo</span>
+    </div>
+    <h2>Scaffold the repo</h2>
+    <p class="lede">Creates <code>kido/docs/</code> and <code>kido/changes/</code>, generates the six skills and six commands into <code>.claude/</code>, then offers two one-time setup questions — only if they're not already answered.</p>
+    <div class="asks">
+      <span class="ask">Legacy docs to seed from?</span>
+      <span class="ask">Configure Jira credentials now?</span>
+    </div>
+
+    <div class="output-label">Console</div>
+    <div class="term">
+      <div class="term-chrome"><span></span><span></span><span></span><span class="path">pricing-service</span></div>
+      <pre><span class="prompt">$</span> kido init
+Scaffolded kido/ in D:\pricing-service
+Generated .claude/skills/mr-* and .claude/commands/kido/* for: document, specify, tasks, apply, review, archive
+<span class="dim">Do you have legacy docs / a legacy repo to seed kido/docs/ from?</span> [y/N] n
+No legacy docs to seed from — run /kido:specify next, it'll build kido/docs/ and your first spec together.
+<span class="dim">No Jira credentials configured yet. Set them up now?</span> [y/N] y
+<span class="dim">Store in a local .kido-credentials file, or set up env vars yourself?</span> [Y/n] Y
+Jira base URL: https://acme.atlassian.net
+Jira account email: dev@acme.com
+Jira API token: ****************
+Jira project key: PROJ
+Wrote .kido-credentials — Jira sync is ready to use.</pre>
+    </div>
+
+    <div class="output-label">Files on disk</div>
+    <div class="term">
+      <div class="term-chrome"><span></span><span></span><span></span><span class="path">tree</span></div>
+      <pre>pricing-service/
+├── kido/
+│   ├── docs/                  <span class="dim">(empty — brownfield, not studied yet)</span>
+│   └── changes/
+│       └── archive/
+├── .kido-credentials          <span class="dim">(gitignored)</span>
+└── .claude/
+    ├── skills/
+    │   ├── <span class="file">mr-document/SKILL.md</span>
+    │   ├── <span class="file">mr-specify/SKILL.md</span>
+    │   ├── <span class="file">mr-tasks/SKILL.md</span>
+    │   ├── <span class="file">mr-apply/SKILL.md</span>
+    │   ├── <span class="file">mr-review/SKILL.md</span>
+    │   └── <span class="file">mr-archive/SKILL.md</span>
+    └── commands/kido/
+        ├── <span class="file">document.md</span> <span class="dim">→ /kido:document</span>
+        ├── <span class="file">specify.md</span>  <span class="dim">→ /kido:specify</span>
+        ├── <span class="file">tasks.md</span>    <span class="dim">→ /kido:tasks</span>
+        ├── <span class="file">apply.md</span>    <span class="dim">→ /kido:apply</span>
+        ├── <span class="file">review.md</span>   <span class="dim">→ /kido:review</span>
+        └── <span class="file">archive.md</span>  <span class="dim">→ /kido:archive</span></pre>
+    </div>
+  </section>
+
+  <!-- STAGE 1 -->
+  <section class="stage" id="s1">
+    <div class="stage-badge">1</div>
+    <div class="stage-kicker">
+      <span class="stage-command">/kido:document</span>
+      <span class="stage-tag">brownfield-only · 5-phase discovery</span>
+    </div>
+    <h2>Study the existing service</h2>
+    <p class="lede"><code>kido/docs/</code> is empty. <code>/kido:specify</code> would have redirected here first anyway — this repo already has real code, and building <code>kido/docs/</code> from it is <code>/kido:document</code>'s job specifically: Inventory → Map → Deep-dive → Synthesize → Emit — every claim grounded in a real file or symbol, gaps marked as open questions rather than guessed.</p>
+
+    <div class="output-label">Files written</div>
+    <div class="filecard">
+      <div class="filecard-head"><span>kido/docs/pricing-service-functional-docs.md</span><span class="tag">BA-facing</span></div>
+      <pre><span class="h"># pricing-service — Functional Overview</span>
+
+<span class="muted">## Capability inventory</span>
+- Vanilla swap pricing (existing) — present value from a flat curve
+- Curve bootstrap from market quotes (existing)
+
+<span class="muted">## Confidence &amp; open questions</span>
+- Day-count convention for accrued interest: <span class="muted">not found in code, flagged for review</span></pre>
+    </div>
+    <div class="filecard">
+      <div class="filecard-head"><span>kido/docs/pricing-service-technical-docs.md</span><span class="tag">Dev-facing</span></div>
+      <pre><span class="h"># pricing-service — Technical Overview</span>
+
+<span class="muted">## Architecture</span>
+.NET 8 · Clean Architecture · REST + SignalR price ticks
+
+<span class="muted">## Conventions</span>
+xUnit, TDD required for pricing logic, no shared mutable state in calculators
+
+<span class="muted">## ADRs</span>
+- <span class="muted">(inferred, unverified)</span> Curve stored as immutable value object</pre>
+    </div>
+    <p class="note"><b>Repeatable, not one-shot.</b> Also the command to refresh <code>kido/docs/</code> any time — <code>/kido:archive</code> re-invokes it in a scoped mode, seeded with just that change's artifacts and diff, rather than a full repo rescan.</p>
+  </section>
+
+  <!-- STAGE 2 -->
+  <section class="stage" id="s2">
+    <div class="stage-badge">2</div>
+    <div class="stage-kicker">
+      <span class="stage-command">/kido:specify</span>
+      <span class="stage-tag">one session · functional-spec.md + design.md</span>
+    </div>
+    <h2>Define what to build, and how — in one sitting</h2>
+    <p class="lede">One run of <code>/kido:specify</code> walks straight through both specs back to back — BA doesn't need Dev in the room for this. Functional pass first: brainstorming-style grill, one question at a time, reading <code>functional-docs.md</code> first so nothing contradicts what's already documented. Then, same session, the design pass — if Dev genuinely isn't present, the agent drafts <code>design.md</code> itself, flagged for Dev to validate later, not a blocking requirement. Both passes require enumerating boundary/failure/concurrent-access conditions before being considered done.</p>
+    <div class="asks"><span class="ask">Push both to Jira as one Epic?</span></div>
+
+    <div class="output-label">Files written</div>
+    <div class="filecard">
+      <div class="filecard-head"><span>kido/changes/add-swap-pricing/functional-spec.md</span><span class="tag">jiraId: PROJ-501</span></div>
+      <pre><span class="h"># Swap Pricing</span>
+
+Traders need to price interest-rate swaps against the live curve, not just vanilla instruments.
+
+<span class="muted">## Acceptance criteria</span>
+- Given a swap definition, when priced, then return PV using the current curve
+- Given an invalid notional, then reject with a clear error
+
+<span class="muted">## Boundary / failure / concurrency</span>
+- Curve unavailable mid-price: reject with a retryable error, no partial PV returned
+- Two requests pricing the same swap concurrently: independent, no shared mutable state
+
+<span class="muted">## Out of scope</span>
+- Cross-currency swaps (separate capability, later)</pre>
+    </div>
+    <div class="filecard">
+      <div class="filecard-head"><span>kido/changes/add-swap-pricing/design.md</span></div>
+      <pre><span class="h"># Swap Pricing — Technical Design</span>
+
+<span class="muted">## Approach</span>
+Extend the existing calculator module with a curve-based swap pricer, reusing the immutable curve value object rather than introducing a new pricing engine.
+
+<span class="muted">## Data model</span>
+New <code>SwapDefinition</code> DTO — notional, fixed rate, tenor, currency
+
+<span class="muted">## Testing strategy</span>
+Unit tests per cash-flow leg; integration test against a fixture curve
+
+<span class="muted">## Boundary / failure / concurrency</span>
+Curve lookup failure surfaces as a typed exception, not a null — caller decides retry vs. fail
+
+<span class="muted">## ADR (new)</span>
+Swap PV computed leg-by-leg rather than via a closed-form formula — matches the existing vanilla pricer's pattern, keeps both pricers auditable the same way.</pre>
+    </div>
+
+    <div class="output-label">Console</div>
+    <div class="term">
+      <div class="term-chrome"><span></span><span></span><span></span><span class="path">jira sync</span></div>
+      <pre><span class="dim">Want me to push both to Jira as one Epic?</span> y
+<span class="prompt">$</span> kido jira sync --change add-swap-pricing
+Created Epic <span class="ok">PROJ-501</span> (https://acme.atlassian.net/browse/PROJ-501)
+<span class="dim"># functional-spec.md + design.md, two labeled sections in one description —</span>
+<span class="dim"># Jira's hierarchy has no separate tier for design.md</span></pre>
+    </div>
+  </section>
+
+  <!-- STAGE 3 -->
+  <section class="stage" id="s3">
+    <div class="stage-badge">3</div>
+    <div class="stage-kicker">
+      <span class="stage-command">/kido:tasks</span>
+      <span class="stage-tag">BA-run · vertical slices · Jira Stories</span>
+    </div>
+    <h2>Break it into shippable slices</h2>
+    <p class="lede">Reads both <code>functional-spec.md</code> and <code>design.md</code>. Tasks are cut as <b>vertical slices</b> — each one crosses every layer it touches and can be verified on its own — never "all the schema changes" as one task and "all the API changes" as another. That's the end of BA's part — no branch gets created here; BA has no push access, so that's Dev's step next.</p>
+    <div class="asks"><span class="ask">Push these to Jira?</span><span class="ask">Existing Epic to nest under?</span></div>
+
+    <div class="output-label">File written</div>
+    <div class="filecard">
+      <div class="filecard-head"><span>kido/changes/add-swap-pricing/tasks.md</span></div>
+      <pre><span class="h">## Task 1: Add curve-based pricing calculator</span>
+
+Implement SwapPricer and its unit tests against a fixture curve.
+
+<span class="muted">**Depends on:** none
+**Test:** calculator returns expected PV for a known swap fixture</span>
+
+<span class="h">## Task 2: Wire calculator into pricing API endpoint</span>
+
+Expose SwapPricer via the existing POST /price endpoint.
+
+<span class="muted">**Depends on:** Task 1
+**Test:** POST /price returns curve-based PV for a swap payload</span></pre>
+    </div>
+
+    <div class="output-label">Console</div>
+    <div class="term">
+      <div class="term-chrome"><span></span><span></span><span></span><span class="path">jira sync</span></div>
+      <pre><span class="prompt">$</span> kido jira sync --change add-swap-pricing
+Updated Epic PROJ-501
+Created Story <span class="ok">PROJ-502</span>: Add curve-based pricing calculator
+Created Story <span class="ok">PROJ-503</span>: Wire calculator into pricing API endpoint</pre>
+    </div>
+  </section>
+
+  <!-- STAGE 4 -->
+  <section class="stage" id="s4">
+    <div class="stage-badge">4</div>
+    <div class="stage-kicker">
+      <span class="stage-command">kido jira pull</span>
+      <span class="stage-tag">Dev's entry · Jira key → local files → branch</span>
+    </div>
+    <h2>Dev picks it up — by Jira key, not git</h2>
+    <p class="lede">BA's <code>functional-spec.md</code>/<code>design.md</code> never reached this machine via git — Jira was the transport. Dev gives <code>/kido:apply</code> a Jira key; since nothing's local yet, it runs <code>kido jira pull</code> first — resolving the Epic, reconstructing <code>functional-spec.md</code> + <code>design.md</code> from its description and <code>tasks.md</code> from every child Story. Only then, before any task starts, does it ask to create the branch.</p>
+    <div class="asks"><span class="ask">Ready to create the branch?</span></div>
+
+    <div class="output-label">Console</div>
+    <div class="term">
+      <div class="term-chrome"><span></span><span></span><span></span><span class="path">jira pull + branch</span></div>
+      <pre><span class="prompt">$</span> kido jira pull PROJ-502
+Pulled PROJ-501 (+ 2 Stories) into kido/changes/add-swap-pricing
+<span class="dim">Ready to create branch feature/PROJ-502-swap-pricing? Or a different name?</span> y
+<span class="prompt">$</span> git checkout -b feature/PROJ-502-swap-pricing
+Switched to a new branch 'feature/PROJ-502-swap-pricing'</pre>
+    </div>
+  </section>
+
+  <!-- STAGE 5 -->
+  <section class="stage" id="s5">
+    <div class="stage-badge">5</div>
+    <div class="stage-kicker">
+      <span class="stage-command">/kido:apply</span>
+      <span class="stage-tag">one subagent per task · TDD</span>
+    </div>
+    <h2>Implement, task by task</h2>
+    <p class="lede">Each task gets its own subagent, scoped to just that task's context — spec, design, its one task, and <code>kido/docs/</code>. Test written first, confirmed failing, then made to pass. Task 2 waits for Task 1 since it depends on it.</p>
+
+    <div class="output-label">Console</div>
+    <div class="term">
+      <div class="term-chrome"><span></span><span></span><span></span><span class="path">apply</span></div>
+      <pre><span class="dim">Task 1 — Add curve-based pricing calculator</span>
+  writing SwapPricerTests.cs (failing) ... <span class="ok">red</span>
+  implementing SwapPricer.cs ... <span class="ok">green</span>
+  tasks.md: [x] Task 1
+
+<span class="dim">Task 2 — Wire calculator into pricing API endpoint</span>
+  <span class="dim">(depends on Task 1 — starts after it's done)</span>
+  writing PricingControllerTests.cs (failing) ... <span class="ok">red</span>
+  implementing PricingController changes ... <span class="ok">green</span>
+  tasks.md: [x] Task 2</pre>
+    </div>
+  </section>
+
+  <!-- STAGE 6 -->
+  <section class="stage" id="s6">
+    <div class="stage-badge">6</div>
+    <div class="stage-kicker">
+      <span class="stage-command">/kido:review</span>
+      <span class="stage-tag">per task, automatic + on demand</span>
+    </div>
+    <h2>Check it against what was promised</h2>
+    <p class="lede">Runs after <em>every</em> task, not just once at the end — an explicit step this session takes, not something that fires on its own. Two checks, always both: does the diff match <code>design.md</code>/<code>tasks.md</code>, and does it meet the conventions <code>technical-docs.md</code> documents.</p>
+
+    <div class="output-label">Console</div>
+    <div class="term">
+      <div class="term-chrome"><span></span><span></span><span></span><span class="path">review — Task 1</span></div>
+      <pre><span class="dim">Spec-traceability</span>  ✓ matches design.md's leg-by-leg approach
+<span class="dim">Standards</span>          ✓ TDD followed · ✓ no mutable shared state
+                    ⚠ SwapPricer.cs missing XML doc comment on public API
+
+No blocking issues. One minor note above — fix now or leave for follow-up?</pre>
+    </div>
+  </section>
+
+  <!-- STAGE 7 -->
+  <section class="stage" id="s7">
+    <div class="stage-badge">7</div>
+    <div class="stage-kicker">
+      <span class="stage-command">/kido:archive</span>
+      <span class="stage-tag">git + docs + Jira · always last</span>
+    </div>
+    <h2>Close it out</h2>
+    <p class="lede">Confirms review actually happened for every task before anything else. Then, in order: commit the code (never bundling in planning docs), optionally refresh <code>kido/docs/</code>, move the change to <code>kido/changes/archive/</code> as its own separate commit, sync any local spec/task edits back to Jira, and mark Jira done.</p>
+    <div class="asks"><span class="ask">Commit, push, open a PR?</span><span class="ask">Update kido/docs/ from this change?</span><span class="ask">Local edits to sync back to Jira?</span></div>
+
+    <div class="output-label">Console</div>
+    <div class="term">
+      <div class="term-chrome"><span></span><span></span><span></span><span class="path">archive</span></div>
+      <pre><span class="dim">Ready to commit, push, and open a PR?</span> y
+<span class="prompt">$</span> git add SwapPricer.cs SwapPricerTests.cs PricingController.cs PricingControllerTests.cs
+<span class="prompt">$</span> git commit -m "Add curve-based swap pricing (PROJ-502, PROJ-503)"
+<span class="prompt">$</span> git push -u origin feature/PROJ-502-swap-pricing
+<span class="prompt">$</span> gh pr create --title "Swap pricing against live curve" --body "Closes PROJ-502, PROJ-503"
+<span class="ok">Opened PR #214</span>
+
+<span class="dim">Want me to update kido/docs/ with anything from this change?</span> y
+<span class="dim">(scoped /kido:document re-run — adds Swap Pricing to the capability inventory, notes the new ADR)</span>
+
+<span class="prompt">$</span> kido archive add-swap-pricing
+Archived "add-swap-pricing" to kido/changes/archive/add-swap-pricing
+<span class="prompt">$</span> git add kido/changes/archive/add-swap-pricing kido/docs
+<span class="prompt">$</span> git commit -m "docs: archive add-swap-pricing planning docs"
+
+<span class="dim">Did functional-spec.md, design.md, or tasks.md change locally during this work?</span> n
+<span class="dim">(nothing changed — kido jira sync would have been a safe no-op either way)</span>
+
+Updated PROJ-501, PROJ-502, PROJ-503 → <span class="ok">Done</span></pre>
+    </div>
+    <p class="note"><b>.claude/ never gets committed</b> here — it's fully regenerated by <code>kido init</code>, so there's nothing to preserve.</p>
+  </section>
+
+</div>
+
+<div class="colophon">
+  Reflects the pipeline as currently implemented — every file, prompt, and command shown here is real, not illustrative. One open question not yet resolved in the tool itself: if the code-commit PR merges before the archive-docs commit gets pushed, pushing to the same feature branch is risky (many teams auto-delete branches after merge) — reorder into one PR vs. detect merge state and commit to main directly are both still on the table.
+</div>

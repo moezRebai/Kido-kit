@@ -23,6 +23,7 @@ export async function runJiraSync(repoRoot: string, changeName: string, explicit
   }
 
   const functionalSpecPath = join(changeDir, "functional-spec.md");
+  const designPath = join(changeDir, "design.md");
   let epicKey: string | undefined;
   if (existsSync(functionalSpecPath)) {
     // Still syncs functional-spec.md to its own Epic either way (useful
@@ -30,7 +31,7 @@ export async function runJiraSync(repoRoot: string, changeName: string, explicit
     // parent for Stories below — e.g. Dev-only changes with no
     // functional-spec.md, or attaching to an Epic that already existed in
     // Jira before this repo adopted Kido.
-    epicKey = await syncSingleIssueFile(client, functionalSpecPath, "Epic");
+    epicKey = await syncEpic(client, functionalSpecPath, existsSync(designPath) ? designPath : undefined);
   }
   epicKey = explicitEpicKey ?? epicKey;
 
@@ -42,8 +43,8 @@ export async function runJiraSync(repoRoot: string, changeName: string, explicit
   }
 }
 
-/** Syncs a single-issue file (functional-spec.md -> Epic, bug.md -> Bug), using frontmatter for idempotency. */
-async function syncSingleIssueFile(client: JiraClient, path: string, issueType: "Epic" | "Bug"): Promise<string> {
+/** Syncs a single-issue file (bug.md -> Bug), using frontmatter for idempotency. */
+async function syncSingleIssueFile(client: JiraClient, path: string, issueType: "Bug"): Promise<string> {
   const content = readFileSync(path, "utf8");
   const { frontmatter, body } = parseFrontmatter(content);
   const { title, body: description } = extractTitleAndBody(body);
@@ -58,6 +59,36 @@ async function syncSingleIssueFile(client: JiraClient, path: string, issueType: 
   const result = await client.createIssue({ summary: title, description, issueType });
   writeFileSync(path, setFrontmatterValue(content, "jiraId", result.key), "utf8");
   console.log(`Created ${issueType} ${result.key} (${result.url})`);
+  return result.key;
+}
+
+/** Syncs functional-spec.md (+ design.md, if present) to a single Epic — two labeled
+ * sections in one description field, since Jira's hierarchy has no separate tier for
+ * design.md (Epic -> Story only). Idempotency stays keyed off functional-spec.md's
+ * jiraId frontmatter; design.md doesn't get its own Jira ID. */
+async function syncEpic(client: JiraClient, specPath: string, designPath: string | undefined): Promise<string> {
+  const specContent = readFileSync(specPath, "utf8");
+  const { frontmatter, body: specBody } = parseFrontmatter(specContent);
+  const { title, body: specDescription } = extractTitleAndBody(specBody);
+
+  let description = specDescription;
+  if (designPath) {
+    const designContent = readFileSync(designPath, "utf8");
+    const { body: designBody } = parseFrontmatter(designContent);
+    const { body: designDescription } = extractTitleAndBody(designBody);
+    description = `## Functional Spec\n\n${specDescription}\n\n## Design\n\n${designDescription}`;
+  }
+
+  const existingKey = frontmatter.jiraId as string | undefined;
+  if (existingKey) {
+    await client.updateIssue(existingKey, { summary: title, description });
+    console.log(`Updated Epic ${existingKey}`);
+    return existingKey;
+  }
+
+  const result = await client.createIssue({ summary: title, description, issueType: "Epic" });
+  writeFileSync(specPath, setFrontmatterValue(specContent, "jiraId", result.key), "utf8");
+  console.log(`Created Epic ${result.key} (${result.url})`);
   return result.key;
 }
 

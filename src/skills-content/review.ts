@@ -17,7 +17,7 @@ If there's no associated change (pure on-demand review with nothing to trace aga
 ## Guardrails
 
 - Don't skip stage 1 just because stage 2 passes — a clean, well-written implementation of the wrong thing is still a defect.
-- Don't fabricate a coding-guidelines checklist if \`technical-docs.md\` doesn't document one yet — flag that as a gap for \`/kido:study\` to fill in, rather than inventing standards the team never agreed to.
+- Don't fabricate a coding-guidelines checklist if \`technical-docs.md\` doesn't document one yet — flag that as a gap for \`/kido:document\` to fill in, rather than inventing standards the team never agreed to.
 `;
 
 export const reviewStage: PipelineStage = {

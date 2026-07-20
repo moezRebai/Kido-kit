@@ -5,7 +5,7 @@
 // this file).
 
 export interface PipelineStage {
-  /** Short id used for the folder/file name, e.g. "study" -> mr-study (skill), /kido:study (command) */
+  /** Short id used for the folder/file name, e.g. "document" -> mr-document (skill), /kido:document (command) */
   id: string;
   /** One-line description used for skill auto-matching and command listings. */
   description: string;
@@ -15,16 +15,16 @@ export interface PipelineStage {
   body: string;
 }
 
-import { studyStage } from "../skills-content/study.js";
-import { specStage } from "../skills-content/spec.js";
+import { documentStage } from "../skills-content/document.js";
+import { specifyStage } from "../skills-content/specify.js";
 import { tasksStage } from "../skills-content/tasks.js";
 import { applyStage } from "../skills-content/apply.js";
 import { reviewStage } from "../skills-content/review.js";
 import { archiveStage } from "../skills-content/archive.js";
 
 export const stages: PipelineStage[] = [
-  studyStage,
-  specStage,
+  documentStage,
+  specifyStage,
   tasksStage,
   applyStage,
   reviewStage,

@@ -1,8 +1,8 @@
 import type { PipelineStage } from "../pipeline/definition.js";
 
-const body = `Break a feature's \`design.md\` into implementable tasks. **Feature path only** — bug fixes don't use this (see \`/kido:spec\`'s bug path and \`/kido:apply\`'s guardrails).
+const body = `Break a feature's \`design.md\` into implementable tasks. BA-run — this happens before any Dev involvement, producing Jira Stories that Dev later picks up by key (see \`/kido:apply\`). **Feature path only** — bug fixes don't use this (see \`/kido:specify\`'s bug path and \`/kido:apply\`'s guardrails).
 
-**Store selection:** resolve the repo root. Run \`kido status --change <name>\` to confirm \`functional-spec.md\` and \`design.md\` are both present before starting — if either is missing, redirect to \`/kido:spec\`.
+**Store selection:** resolve the repo root. Run \`kido status --change <name>\` to confirm \`functional-spec.md\` and \`design.md\` are both present before starting — if either is missing, redirect to \`/kido:specify\`.
 
 ## Reads
 
@@ -49,13 +49,7 @@ Write \`tasks.md\` to \`kido/changes/<name>/\`.
 
 Either way: each task becomes a Jira **Story** directly (no Sub-task level; Epic → Story, two levels, not three). The **project** Stories/Epics land in is never something to ask about — it's fixed per repo via the configured Jira credentials (one project per microservice), not a per-change choice.
 
-## Branch creation
-
-Before \`/kido:apply\` starts, always confirm the branch name — never create one silently. The default you propose depends on whether Jira sync happened:
-- **Jira Story IDs came back**: propose \`feature/<JIRA-ID>-<slug>\`.
-- **No Jira** (sync declined, failed, or not configured): propose \`feature/<change-name>\` (the kebab-case change folder name, e.g. \`feature/spread-calculation\`) as the fallback — there's no Jira ID to anchor it to.
-
-Either way, **ask**: "Ready to create branch \`<proposed-name>\`? Or give me a different name if you'd prefer." Always let the user override with a name of their own choosing rather than treating the default as final.
+That's the end of this command's job. Branch creation doesn't happen here — BA doesn't have push access, so it wouldn't be BA's branch to create. Dev creates it when they pick up a Story (see \`/kido:apply\`'s Jira-key entry point).
 
 ## Guardrails
 
@@ -66,7 +60,7 @@ Either way, **ask**: "Ready to create branch \`<proposed-name>\`? Or give me a d
 export const tasksStage: PipelineStage = {
   id: "tasks",
   description:
-    "Break a feature's functional-spec.md + design.md into vertical-slice, independently-demonstrable tasks, sync as Jira Stories, and set up the working branch. Feature path only.",
+    "BA-run: break a feature's functional-spec.md + design.md into vertical-slice, independently-demonstrable tasks and sync them as Jira Stories. Feature path only. Branch creation happens later, in /kido:apply.",
   allowedTools: "Bash(kido:*), Read, Write, AskUserQuestion",
   body,
 };

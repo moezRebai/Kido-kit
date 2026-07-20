@@ -18,8 +18,8 @@ export function runNewChange(repoRoot: string, rawName: string, type: ChangeType
 
   console.log(`Created ${changeDir} (type: ${type})`);
   if (type === "feature") {
-    console.log("Next: /kido:spec to draft functional-spec.md, then design.md.");
+    console.log("Next: /kido:specify to draft functional-spec.md, then design.md.");
   } else {
-    console.log("Next: /kido:spec to draft bug.md.");
+    console.log("Next: /kido:specify to draft bug.md.");
   }
 }

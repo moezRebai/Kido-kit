@@ -30,7 +30,7 @@ function seedFromLegacy(repoRoot: string, legacyPath: string): void {
   }
   const result = copyKidoDocs(legacyPath, repoRoot);
   if (result.copied) {
-    console.log(`Copied kido/docs/ from ${legacyPath}. Run /kido:study next to adapt it for this project (regeneration mode).`);
+    console.log(`Copied kido/docs/ from ${legacyPath}. Run /kido:specify next to adapt it for this project (or /kido:document first if this repo already has real code to discover).`);
   } else {
     console.log(`Could not seed from legacy repo: ${result.reason}`);
   }
@@ -47,13 +47,13 @@ async function handleDocsSetup(repoRoot: string, options: InitOptions, prompt: P
     return;
   }
   if (options.noLegacy) {
-    console.log("No legacy docs to seed from — run /kido:study next (greenfield mode) to build kido/docs/ from scratch.");
+    console.log("No legacy docs to seed from — run /kido:specify next, it'll build kido/docs/ and your first spec together.");
     return;
   }
   if (!prompt) {
     console.log(
       "No /docs yet, and no terminal to ask interactively — pass --from-legacy <path> to seed from a legacy repo, " +
-        "or --no-legacy to skip, then run /kido:study."
+        "or --no-legacy to skip, then run /kido:specify (or /kido:document first if this repo already has real code)."
     );
     return;
   }
@@ -63,7 +63,7 @@ async function handleDocsSetup(repoRoot: string, options: InitOptions, prompt: P
     const legacyPath = await prompt.askText("Path to the legacy repo (containing its own kido/docs/):");
     seedFromLegacy(repoRoot, legacyPath);
   } else {
-    console.log("No legacy docs to seed from — run /kido:study next (greenfield mode) to build kido/docs/ from scratch.");
+    console.log("No legacy docs to seed from — run /kido:specify next, it'll build kido/docs/ and your first spec together.");
   }
 }
 

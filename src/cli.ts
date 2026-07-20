@@ -7,6 +7,7 @@ import { runValidate } from "./commands/validate.js";
 import { runArchive } from "./commands/archive.js";
 import { runDocsExport } from "./commands/docs-export.js";
 import { runJiraSync } from "./commands/jira-sync.js";
+import { runJiraPull } from "./commands/jira-pull.js";
 import type { ChangeType } from "./lib/change-meta.js";
 
 const HELP = `kido — spec-driven BA/Dev collaboration CLI
@@ -20,6 +21,7 @@ Usage:
   kido archive <name> [--force]             Move a change to kido/changes/archive/
   kido docs export --to <path>              Copy kido/docs/ into another repo
   kido jira sync --change <name> [--epic <KEY>]  Push change artifacts to Jira (--epic pins Stories to an existing Epic)
+  kido jira pull <key> [--as <change-name>]      Materialize a Jira Epic/Story/Bug into kido/changes/<name>/
 `;
 
 async function main(): Promise<void> {
@@ -75,6 +77,10 @@ async function main(): Promise<void> {
     case "jira":
       if (positionals[0] === "sync") {
         await runJiraSync(repoRoot, requireFlag(flags, "change"), optionalFlag(flags, "epic"));
+      } else if (positionals[0] === "pull") {
+        const key = positionals[1];
+        if (!key) throw new Error("Usage: kido jira pull <key> [--as <change-name>]");
+        await runJiraPull(repoRoot, key, optionalFlag(flags, "as"));
       } else {
         console.log(HELP);
       }

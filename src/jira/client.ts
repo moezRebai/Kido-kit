@@ -15,6 +15,31 @@ export interface JiraIssueResult {
   url: string;
 }
 
+export interface JiraIssueDetails {
+  key: string;
+  summary: string;
+  description: string;
+  issueType: JiraIssueType;
+  parentKey?: string;
+}
+
+/** ADF description -> plain text, best effort. The encoder always writes a single
+ * paragraph/single text node (see createIssue/updateIssue below), so this round-trips
+ * that exactly; content added via Jira's own rich-text editor may not fully survive. */
+function adfDescriptionToText(description: unknown): string {
+  const doc = description as { content?: unknown[] } | undefined;
+  if (!doc?.content) return "";
+  return doc.content.map(collectText).join("\n\n");
+}
+
+function collectText(node: unknown): string {
+  if (!node || typeof node !== "object") return "";
+  const n = node as { type?: string; text?: string; content?: unknown[] };
+  if (n.type === "text") return n.text ?? "";
+  if (Array.isArray(n.content)) return n.content.map(collectText).join("");
+  return "";
+}
+
 /** Thin fetch-based Jira Cloud REST client — no SDK dependency (decision #13). */
 export class JiraClient {
   constructor(private readonly creds: JiraCredentials) {}
@@ -79,6 +104,52 @@ export class JiraClient {
         },
       }),
     });
+  }
+
+  /** Reads a single issue back — the reverse of createIssue/updateIssue, used by `kido jira pull`. */
+  async getIssue(key: string): Promise<JiraIssueDetails> {
+    const response = await this.request(
+      `/rest/api/3/issue/${key}?fields=summary,description,issuetype,parent`,
+      { method: "GET" }
+    );
+    const data = (await response.json()) as {
+      key: string;
+      fields: {
+        summary: string;
+        description?: unknown;
+        issuetype: { name: string };
+        parent?: { key: string };
+      };
+    };
+    return {
+      key: data.key,
+      summary: data.fields.summary,
+      description: adfDescriptionToText(data.fields.description),
+      issueType: data.fields.issuetype.name as JiraIssueType,
+      parentKey: data.fields.parent?.key,
+    };
+  }
+
+  /** Lists Stories nested under an Epic, oldest first — used to reconstruct tasks.md on pull. */
+  async searchChildIssues(epicKey: string): Promise<JiraIssueDetails[]> {
+    const jql = encodeURIComponent(`parent = ${epicKey} ORDER BY created ASC`);
+    const response = await this.request(
+      `/rest/api/3/search?jql=${jql}&fields=summary,description,issuetype,parent`,
+      { method: "GET" }
+    );
+    const data = (await response.json()) as {
+      issues: Array<{
+        key: string;
+        fields: { summary: string; description?: unknown; issuetype: { name: string }; parent?: { key: string } };
+      }>;
+    };
+    return data.issues.map((issue) => ({
+      key: issue.key,
+      summary: issue.fields.summary,
+      description: adfDescriptionToText(issue.fields.description),
+      issueType: issue.fields.issuetype.name as JiraIssueType,
+      parentKey: issue.fields.parent?.key,
+    }));
   }
 
   async transitionToStatus(key: string, statusName: string): Promise<void> {
