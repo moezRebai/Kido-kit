@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Spec-driven BA/Dev collaboration CLI for greenfield and brownfield microservices",
   "type": "module",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "bin": {
     "kido": "./bin/kido.js"
   },
