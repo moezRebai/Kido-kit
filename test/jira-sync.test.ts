@@ -15,6 +15,11 @@ interface FakeIssueFields {
   summary: string;
   issuetype: { name: string };
   parent?: { key: string };
+  description?: { content?: Array<{ content?: Array<{ text?: string }> }> };
+}
+
+function descriptionText(fields: FakeIssueFields): string {
+  return fields.description?.content?.[0]?.content?.[0]?.text ?? "";
 }
 
 function startFakeJira(): Promise<{ server: Server; url: string; issues: Map<string, FakeIssueFields>; nextId: { n: number } }> {
@@ -171,6 +176,50 @@ test("--epic pins Stories to an existing Epic, taking priority even when functio
     const storyKeyMatch = /\*\*Jira:\*\*\s*(\S+)/.exec(tasksContent);
     assert.ok(storyKeyMatch, "expected a Jira story marker in tasks.md");
     assert.equal(issues.get(storyKeyMatch![1]!)!.parent!.key, "PROJ-999");
+  } finally {
+    server.close();
+    rmSync(repo, { recursive: true, force: true });
+    process.env = originalEnv;
+  }
+});
+
+test("functional-spec.md with epicId frontmatter syncs as a Story under that Epic, not a new Epic", async () => {
+  const { server, url, issues } = await startFakeJira();
+  const repo = makeRepo();
+  const originalEnv = { ...process.env };
+
+  try {
+    process.env.KIDO_JIRA_BASE_URL = url;
+    process.env.KIDO_JIRA_EMAIL = "test@example.com";
+    process.env.KIDO_JIRA_API_TOKEN = "fake-token";
+    process.env.KIDO_JIRA_PROJECT_KEY = "TEST";
+
+    // Simulate a shared Epic BA already had — not something Kido created.
+    issues.set("SPREAD-9", { summary: "Spreading", issuetype: { name: "Epic" } });
+
+    runNewChange(repo, "Expose Currencies Endpoint", "feature");
+    const changeDir = resolveKidoPaths(repo).changeDir("expose-currencies-endpoint");
+    writeFileSync(
+      join(changeDir, "functional-spec.md"),
+      ["---", 'epicId: "SPREAD-9"', "---", "", "# Expose Currencies Endpoint", "", "Return all supported currencies."].join("\n")
+    );
+
+    await runJiraSync(repo, "expose-currencies-endpoint");
+
+    const specContent = readFileSync(join(changeDir, "functional-spec.md"), "utf8");
+    const { frontmatter } = parseFrontmatter(specContent);
+    const storyKey = frontmatter.jiraId as string;
+    assert.ok(storyKey, "expected jiraId to be recorded");
+
+    const story = issues.get(storyKey)!;
+    assert.equal(story.issuetype.name, "Story", "should sync as a Story, not an Epic");
+    assert.equal(story.parent!.key, "SPREAD-9");
+    assert.match(descriptionText(story), /^## Functional Spec/, "always prefixed, even without design.md");
+    assert.equal(issues.size, 2, "only the pre-existing Epic plus this one new Story — no Epic created for it");
+
+    // Re-syncing updates the same Story by jiraId, doesn't create a duplicate.
+    await runJiraSync(repo, "expose-currencies-endpoint");
+    assert.equal(issues.size, 2);
   } finally {
     server.close();
     rmSync(repo, { recursive: true, force: true });

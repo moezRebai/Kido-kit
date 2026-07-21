@@ -6,7 +6,7 @@ const body = `Implement a change. This is Dev's entry point into the pipeline �
 
 Dev may give you either a local change name (if it's already in \`kido/changes/<name>/\` — e.g. picking back up on something) or a **Jira key** (Epic, Story, or Bug — e.g. "apply PROJ-456") — this is the normal case, since BA's work reached Jira, not the local filesystem.
 
-If given a Jira key and \`kido/changes/<name>/\` doesn't already exist locally: run \`kido jira pull <key>\` first. It resolves the full change from Jira (a Story pulls its parent Epic too) and materializes \`functional-spec.md\`/\`design.md\`/\`tasks.md\` (or \`bug.md\`) locally, printing the resolved change name — use that name for everything below. If the local folder already exists, don't silently overwrite it — ask before re-pulling over local edits.
+If given a Jira key and \`kido/changes/<name>/\` doesn't already exist locally: run \`kido jira pull <key>\` first. It resolves the full change from Jira and materializes it locally, printing the resolved change name — use that name for everything below. What comes back depends on what the key pointed at: a Kido-created Epic (or one of its task Stories) pulls \`functional-spec.md\` + \`design.md\` + \`tasks.md\`; a small-feature Story filed under an existing Epic pulls just \`functional-spec.md\` (+ \`design.md\` if written) with **no** \`tasks.md\`; a Bug pulls \`bug.md\` alone. If the local folder already exists, don't silently overwrite it — ask before re-pulling over local edits.
 
 ## Branch creation
 
@@ -24,6 +24,14 @@ One subagent per task in \`tasks.md\`, by default — not one long session doing
 - **TDD**: each subagent writes the failing test for its task first, then implements to make it pass — same convention the rest of the pipeline assumes.
 - **Progress**: check off each task in \`tasks.md\` as its subagent completes it (mirrors how \`kido status\` reports completion).
 - **After each task's subagent finishes, YOU must explicitly perform the \`/kido:review\` check yourself before moving to the next task or suggesting anything else** (spec-traceability + standards, per that skill's process) — this does NOT happen on its own just because it's described elsewhere. Treat it as the next required step in this same sequence, not something a separate mechanism triggers for you.
+
+## Small-feature path (functional-spec.md + design.md exist, no tasks.md, not a bug)
+
+A small feature filed as a single Story under an existing Epic (see \`/kido:specify\`'s "existing Epic" mode) — there's no task breakdown to dispatch against, same shape as the bug path below:
+1. **Implement it**, TDD — failing test first, then make it pass. Read \`functional-spec.md\` + \`design.md\` + \`kido/docs/\` for context, same as any task would.
+2. **Perform the \`/kido:review\` check yourself** against \`functional-spec.md\`/\`design.md\` before suggesting anything else.
+
+(If this turns out to actually need multiple tasks once you're in it, that's a sign "existing Epic" was the wrong call at spec time — flag it rather than silently forcing it through this single-pass flow.)
 
 ## Bug path (bug.md exists, no tasks.md)
 
@@ -45,7 +53,7 @@ No subagent dispatch — a bug fix is one unit of work by default:
 export const applyStage: PipelineStage = {
   id: "apply",
   description:
-    "Dev's entry point — accepts a local change name or a Jira key (running kido jira pull to materialize it if needed), creates the branch, then implements a change's tasks (one subagent per task, TDD, dependency-ordered) or a bug fix (reproduce with a failing test, then fix).",
+    "Dev's entry point — accepts a local change name or a Jira key (running kido jira pull to materialize it if needed), creates the branch, then implements a change's tasks (one subagent per task, TDD, dependency-ordered), a small feature filed as a single Story under an existing Epic (single TDD pass, no subagent dispatch), or a bug fix (reproduce with a failing test, then fix).",
   allowedTools: "Bash(kido:*), Read, Write, Edit, Bash, Agent",
   body,
 };

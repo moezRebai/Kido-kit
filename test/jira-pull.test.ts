@@ -232,6 +232,57 @@ test("kido jira pull on an Epic reconstructs functional-spec.md + design.md + ta
   }
 });
 
+test("kido jira pull materializes a small-feature Story directly, ignoring unrelated siblings under the same shared Epic", async () => {
+  const { server, url, issues } = await startFakeJira();
+  const baRepo = makeRepo();
+  const devRepo = makeRepo();
+  const originalEnv = { ...process.env };
+
+  try {
+    setJiraEnv(url);
+
+    // A shared Epic BA already had, already collecting unrelated tickets.
+    issues.set("SPREAD-9", { key: "SPREAD-9", fields: { summary: "Spreading", issuetype: { name: "Epic" } }, order: 0 });
+    issues.set("SPREAD-10", {
+      key: "SPREAD-10",
+      fields: {
+        summary: "Fix stale quote on reconnect",
+        issuetype: { name: "Story" },
+        parent: { key: "SPREAD-9" },
+        description: { content: [{ content: [{ text: "Unrelated pre-existing ticket." }] }] },
+      },
+      order: 1,
+    });
+
+    runNewChange(baRepo, "Expose Currencies Endpoint", "feature");
+    const baChangeDir = resolveKidoPaths(baRepo).changeDir("expose-currencies-endpoint");
+    writeFileSync(
+      join(baChangeDir, "functional-spec.md"),
+      ["---", 'epicId: "SPREAD-9"', "---", "", "# Expose Currencies Endpoint", "", "Return all supported currencies."].join("\n")
+    );
+    await runJiraSync(baRepo, "expose-currencies-endpoint");
+    const storyKey = parseFrontmatter(readFileSync(join(baChangeDir, "functional-spec.md"), "utf8")).frontmatter
+      .jiraId as string;
+
+    const devChangeName = await runJiraPull(devRepo, storyKey);
+    const devChangeDir = resolveKidoPaths(devRepo).changeDir(devChangeName);
+
+    const spec = readFileSync(join(devChangeDir, "functional-spec.md"), "utf8");
+    assert.match(parseFrontmatter(spec).body, /Return all supported currencies\./);
+    assert.equal(parseFrontmatter(spec).frontmatter.jiraId, storyKey);
+    assert.equal(existsSync(join(devChangeDir, "design.md")), false, "no design.md was ever written for this feature");
+    assert.equal(existsSync(join(devChangeDir, "tasks.md")), false, "small-feature mode never produces tasks.md");
+
+    // The unrelated sibling under the same shared Epic must not leak in anywhere.
+    assert.doesNotMatch(spec, /stale quote/);
+  } finally {
+    server.close();
+    rmSync(baRepo, { recursive: true, force: true });
+    rmSync(devRepo, { recursive: true, force: true });
+    process.env = originalEnv;
+  }
+});
+
 test("kido jira pull refuses a Story with no parent Epic", async () => {
   const { server, url, issues } = await startFakeJira();
   const repo = makeRepo();

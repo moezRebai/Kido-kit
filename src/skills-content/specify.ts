@@ -26,15 +26,13 @@ This is the actual first fork of the whole pipeline. Ask if it isn't already obv
 - **Bug** → skip to "Bug path" below.
 - **Feature** → continue to Step 2.
 
-## Step 2 — Feature path: one session, both specs
+## Step 2 — Feature path: functional-spec, a checkpoint, then design
 
-Run \`kido status --change <name>\` (creating the change with \`kido new-change <name> --type feature\` first if it doesn't exist yet). Unlike the rest of the pipeline, this isn't a multi-invocation dispatch — a single \`/kido:specify\` run walks straight through **both** \`functional-spec.md\` and \`design.md\` back to back, in this order, before finishing:
+Run \`kido status --change <name>\` (creating the change with \`kido new-change <name> --type feature\` first if it doesn't exist yet). Dispatch on what exists:
 
-- **Neither exists yet** → do the full sequence below: functional-spec grilling, then design grilling, in the same sitting.
-- **\`functional-spec.md\` exists, no \`design.md\`** → skip straight to design grilling (someone already did the functional pass in an earlier session; pick up where they left off).
+- **Neither exists yet** → functional-spec grilling first. Once it's written, stop at the "Checkpoint" below rather than sliding straight into design grilling — that's the BA/Dev handoff point, and it's explicit now, not silent.
+- **\`functional-spec.md\` exists, no \`design.md\`** → skip straight to design grilling. Someone already did the functional pass and either continued through the checkpoint or deliberately stopped there to bring Dev in — either way, pick up where they left off.
 - **Both exist** → nothing left for this command; point the user at \`/kido:tasks\`.
-
-BA doesn't need Dev to be in the room for this. If Dev genuinely isn't present, **draft \`design.md\` yourself** using your own technical judgment — still through the full grilling rigor below (including the boundary/failure/concurrency enumeration), not a shortcut version. Mark the parts you're least confident about as needing Dev validation, but don't block on it — Dev can review and amend \`design.md\` later, asynchronously, same as they'd review any other draft. If Dev *is* present, obviously let them drive the technical-approach questions.
 
 **Dev-only entry** (starting directly at \`design.md\` with no \`functional-spec.md\` at all) is only appropriate for genuinely non-business-facing internal/infra work — a dependency bump, an internal refactor with zero user-facing behavior change. It is NOT appropriate for feature work, page rewrites, or migrations, even when "the code already existed before" — anything with functional/business meaning should still get a (possibly lightweight) functional-spec.md first, because that's what makes the Jira Epic and keeps intent traceable. If you're unsure which bucket a request falls into, ask.
 
@@ -48,21 +46,38 @@ Adapt Superpowers' \`brainstorming\` mechanics:
 - Once you understand it, present the draft \`functional-spec.md\` in sections, get approval section-by-section.
 - Self-review before finalizing: any placeholders/TBDs, internal contradictions, scope creep, or ambiguous requirements? Fix inline.
 - Write \`functional-spec.md\` to \`kido/changes/<name>/\`.
-- Then continue straight into design grilling below — don't stop and wait for a separate invocation.
+
+### Checkpoint — functional done, hand-off point for Dev
+
+Stop here and tell the user plainly: "functional-spec.md is done. Next is the technical design — that's best worked out together with Dev, since it's their call how to build this." Don't just carry on into design grilling silently.
+
+- **Ask**: "Want me to push \`functional-spec.md\` to Jira now, so it's tracked even before the design is written?" If yes, **ask**: "Does this need its own new Epic, or does it belong under an Epic that already exists?"
+  - **New Epic** (default): push \`functional-spec.md\` as its own Epic. Same create/link/decline handling as any other Jira push (see Guardrails) — if they already made the Epic by hand, record its key in frontmatter instead of creating a duplicate; if they decline or credentials aren't configured, that's fine, don't block.
+  - **Existing Epic**: ask for the key, then write \`epicId: <key>\` directly into \`functional-spec.md\`'s frontmatter yourself, *before* running \`kido jira sync\` — the CLI reads this automatically and syncs \`functional-spec.md\` (+ \`design.md\` later) as a single **Story** nested under that Epic instead of creating a new one. **Only pick this if the whole feature is one unit of work — no task breakdown.** If it'll need multiple tasks, use "new Epic" instead, even if it conceptually belongs to a bigger initiative — task breakdown under a shared existing Epic isn't supported yet.
+  - Either way, if \`design.md\` gets added later in a follow-up session, re-running \`kido jira sync\` just updates the same Epic or Story to include it — nothing gets duplicated.
+- **Then ask**: "Continue into the design pass now, or stop here and pick it up later with Dev?"
+  - **Continue now** → go straight into design grilling below, in this same session.
+  - **Stop here** → stop the whole session. \`functional-spec.md\` is saved (and pushed, if that was just answered yes). There's nothing else to do right now — running \`/kido:specify\` again later, whenever Dev's available, will see \`functional-spec.md\` is done and jump straight to design grilling.
 
 ### Design grilling
 
-Same brainstorming mechanics, different inputs and content:
+If Dev genuinely isn't present when this is reached (BA chose to continue solo at the checkpoint above), **draft \`design.md\` yourself** using your own technical judgment — still through the full grilling rigor below (including the boundary/failure/concurrency enumeration), not a shortcut version. Mark the parts you're least confident about as needing Dev validation, but don't block on it — Dev can review and amend \`design.md\` later, asynchronously, same as they'd review any other draft. If Dev *is* present, obviously let them drive the technical-approach questions.
+
+Same brainstorming mechanics as the functional pass, different inputs and content:
 - Read \`functional-spec.md\` (just written, or from an earlier session) + \`kido/docs/{project}-technical-docs.md\` (target architecture, existing conventions, prior ADRs).
 - Propose 2-3 technical approaches with tradeoffs, lead with your recommendation.
 - Cover in the draft: chosen approach (+ alternatives considered and why rejected), architecture impact (affected components, new ones introduced), data model/contract changes (schemas, shared DTOs, API endpoints, streaming events), testing strategy (TDD — what's unit vs. integration), risks & mitigations.
 - **Before considered done:** same boundary/failure/concurrent-access enumeration as the functional-spec pass, now at the technical level — e.g. what happens at data-model boundaries, on partial failure, under concurrent writes/requests. Write it down explicitly, don't leave it implicit in "risks & mitigations."
 - If this design makes a real architectural decision, draft a new ADR entry directly into \`technical-docs.md\` (don't wait for \`/kido:document\` to run again).
 - Section-by-section approval, then self-review, then write \`design.md\`.
-- **Once both files are written, ask once** (don't auto-push): "Want me to push this to Jira as an Epic? (Or if you already created it manually, give me the key and I'll link to it instead.)"
-  - **They give you an existing key** (e.g. they hit this before — no Jira credentials configured yet — and made the Epic by hand as a stopgap): write \`jiraId: <key>\` into \`functional-spec.md\`'s frontmatter yourself (\`design.md\` doesn't need its own — the Epic sync always reads the key from \`functional-spec.md\`). Do this *before* ever running \`kido jira sync\` for this change — otherwise the next sync has no way to know the Epic already exists and creates a duplicate.
-  - **They say yes, create it**: run \`kido jira sync --change <name>\` — it pushes \`functional-spec.md\` and \`design.md\` together into the same Epic's description (two labeled sections; Jira's hierarchy has no separate tier for design.md).
-  - **They decline, or \`kido jira sync\` fails because credentials aren't configured**: that's fine, don't block — the files are already safely written locally. Tell them they can configure credentials later and just re-run \`kido jira sync --change <name>\` (safe/idempotent), or create the Epic manually now and come back to record its key the way described above.
+- **Now that both files are written, sync Jira**:
+  - **functional-spec.md was already pushed at the checkpoint** → just run \`kido jira sync --change <name>\` again, no need to ask a second time — it's an update to the same Epic or Story (now with both sections), not a new push. Just tell the user it's done.
+  - **It wasn't pushed yet** (declined at the checkpoint, or the checkpoint itself was skipped because both files got written in one uninterrupted flow) → **ask once** (don't auto-push): "Want me to push this to Jira now? (Or if you already created it manually, give me the key and I'll link to it instead.)" then the same new-Epic-vs-existing-Epic choice from the checkpoint applies here too:
+    - **They give you an existing key for a ticket they already made**: write \`jiraId: <key>\` into \`functional-spec.md\`'s frontmatter yourself (\`design.md\` doesn't need its own — the sync always reads the key from \`functional-spec.md\`) *before* ever running \`kido jira sync\` — otherwise the next sync has no way to know it already exists and creates a duplicate.
+    - **They say yes, new Epic**: run \`kido jira sync --change <name>\` — it pushes \`functional-spec.md\` and \`design.md\` together into the same Epic's description (two labeled sections; Jira's hierarchy has no separate tier for design.md).
+    - **They say yes, existing Epic**: write \`epicId: <key>\` into \`functional-spec.md\`'s frontmatter first (same as the checkpoint), then run \`kido jira sync --change <name>\` — syncs both files as a single Story under that Epic.
+    - **They decline, or \`kido jira sync\` fails because credentials aren't configured**: that's fine, don't block — the files are already safely written locally. Tell them they can configure credentials later and just re-run \`kido jira sync --change <name>\` (safe/idempotent), or create the ticket manually now and come back to record its key the way described above.
+- **If this change is in existing-Epic mode** (\`functional-spec.md\`'s frontmatter has \`epicId\`): don't suggest \`/kido:tasks\` — there's no task breakdown for a single Story. Close out instead: "This is filed as a single Story under [the existing Epic] — Dev picks it up via \`kido jira pull <story-key>\` + \`/kido:apply\` directly, same single-pass implementation as the bug path." Otherwise (new-Epic mode, the default), nothing changes — \`/kido:tasks\` is the natural next step, same as always.
 
 ## Bug path
 
@@ -80,6 +95,8 @@ Same grilling rigor as the functional-spec pass above, scoped to \`bug.md\`'s co
 - Never silently sync to Jira — always ask first, every time.
 - If the user says they already created the Jira Epic/Bug by hand (e.g. no credentials configured at the time), always record its key in the relevant file's \`jiraId\` frontmatter *before* ever running \`kido jira sync\` for that change — idempotency is keyed off that local frontmatter value, not anything looked up in Jira, so skipping this creates a duplicate ticket the first time sync does run.
 - Don't skip the grilling phase for functional-spec.md, design.md, or bug.md, even for "simple" changes — that's exactly where unexamined assumptions cause the most rework.
+- Don't silently slide from functional-spec grilling into design grilling — always stop at the checkpoint and let the user decide whether to continue solo or wait for Dev.
+- Don't offer "existing Epic" mode for anything that might need a task breakdown — it's for single-unit-of-work features only. If unsure whether it'll stay small, default to "new Epic."
 - Don't skip the boundary/failure/concurrent-access enumeration either — it's a required part of "done," not an optional nicety.
 - If \`kido/docs/\` is missing and this repo has existing code, stop and redirect to \`/kido:document\` — don't draft anything ungrounded. If there's no existing code, build \`kido/docs/\` yourself first (see above) instead of redirecting.
 `;
@@ -87,7 +104,7 @@ Same grilling rigor as the functional-spec pass above, scoped to \`bug.md\`'s co
 export const specifyStage: PipelineStage = {
   id: "specify",
   description:
-    "Start a change — forks bug vs feature, then in one session walks through functional-spec.md AND design.md (or bug.md) via a brainstorming-style grilling session requiring enumerated boundary/failure/concurrent-access conditions. BA can run this solo (drafting design.md itself if Dev isn't present) since Jira, not git, is how the result reaches Dev. For a greenfield repo with no kido/docs/, builds it inline first. The main entry point for new work.",
+    "Start a change — forks bug vs feature. Feature path: functional-spec.md grilling, then an explicit checkpoint (push to Jira as a new Epic or under an existing one? continue into design now, or stop and wait for Dev?), then design.md grilling if continuing. Existing-Epic mode files as a single Story with no task breakdown — skips /kido:tasks entirely. Bug path: bug.md via the same grilling rigor. Boundary/failure/concurrent-access conditions must be enumerated for every artifact. For a greenfield repo with no kido/docs/, builds it inline first. The main entry point for new work.",
   allowedTools: "Bash(kido:*), Read, Write, Edit, Glob, AskUserQuestion",
   body,
 };
