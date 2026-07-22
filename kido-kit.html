@@ -4,8 +4,9 @@
     document.documentElement.setAttribute("data-theme", stored === "dark" ? "dark" : "light");
   })();
 </script>
-<title>Kido — Pipeline Runbook</title>
-<meta name="description" content="The Kido workflow end to end — three paths (full feature, small feature under an existing Epic, bug fix) through the same eight stages, with the actual output produced at every step." />
+<meta charset="UTF-8" />
+<title>Kido — Toolkit</title>
+<meta name="description" content="Kido: what it is, the full pipeline runbook with real output at every stage, and an animated flow diagram of the whole system." />
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0710'/%3E%3Cline x1='16' y1='7' x2='16' y2='3' stroke='%23facc15' stroke-width='2' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='3' r='1.7' fill='%23facc15'/%3E%3Crect x='5' y='8' width='22' height='19' rx='6' stroke='%23facc15' stroke-width='2'/%3E%3Ccircle cx='12' cy='17.5' r='2.3' fill='%23facc15'/%3E%3Ccircle cx='20' cy='17.5' r='2.3' fill='%23facc15'/%3E%3Crect x='11' y='22.5' width='10' height='2.2' rx='1.1' fill='%23facc15' opacity='0.85'/%3E%3C/svg%3E" />
 <style>
   :root {
@@ -526,6 +527,229 @@
     .stage::before { left: 14px; }
     .intro h1 { font-size: 1.65rem; }
   }
+
+  /* ---------- App shell (sidebar + pages) ---------- */
+
+  .app-shell {
+    display: flex;
+    align-items: flex-start;
+  }
+
+  .sidebar {
+    flex: none;
+    width: 220px;
+    position: sticky;
+    top: 53px;
+    height: calc(100vh - 53px);
+    overflow-y: auto;
+    padding: 22px 14px 20px;
+    border-right: 1px solid var(--rule);
+  }
+
+  .sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .sidebar-nav a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: 8px;
+    color: var(--ink-soft);
+    text-decoration: none;
+    font-size: 0.86rem;
+  }
+  .sidebar-nav a svg { width: 16px; height: 16px; flex: none; opacity: 0.8; }
+  .sidebar-nav a:hover { background: var(--paper-raised); color: var(--ink); }
+  .sidebar-nav a.active { background: var(--paper-raised); color: var(--brass-ink); font-weight: 600; }
+  .sidebar-nav a.active svg { opacity: 1; }
+
+  .sidebar-hint {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid var(--rule);
+    font-size: 0.72rem;
+    line-height: 1.5;
+    color: var(--ink-soft);
+  }
+
+  .main { flex: 1; min-width: 0; }
+
+  .page { display: none; }
+  .page.active { display: block; }
+
+  .runbook-nav-bar {
+    position: sticky;
+    top: 53px;
+    z-index: 5;
+    background: color-mix(in srgb, var(--paper) 92%, transparent);
+    backdrop-filter: blur(6px);
+    border-bottom: 1px solid var(--rule);
+    padding: 10px 24px;
+  }
+
+  @media (max-width: 720px) {
+    .app-shell { flex-direction: column; }
+    .sidebar {
+      position: static;
+      width: auto;
+      height: auto;
+      border-right: none;
+      border-bottom: 1px solid var(--rule);
+    }
+    .sidebar-nav { flex-direction: row; overflow-x: auto; }
+    .runbook-nav-bar { top: 0; }
+  }
+
+  /* ---------- Overview / docs page ---------- */
+
+  .doc-wrap {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+
+  .doc-section { margin: 0 0 34px; }
+  .doc-section h2 { font-size: 1.18rem; margin-bottom: 10px; }
+  .doc-section p { color: var(--ink-soft); max-width: 68ch; margin: 0 0 10px; }
+  .doc-section ul { color: var(--ink-soft); padding-left: 20px; margin: 8px 0 0; }
+  .doc-section li { margin-bottom: 5px; }
+
+  .doc-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 4px 0 14px;
+    font-size: 0.85rem;
+  }
+  .doc-table th, .doc-table td {
+    text-align: left;
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  .doc-table th {
+    color: var(--ink-soft);
+    font-weight: 600;
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .doc-table td:first-child { white-space: nowrap; color: var(--ledger-soft); }
+
+  /* ---------- Flow diagram page ---------- */
+
+  .flow-wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 40px 24px 90px;
+  }
+
+  .flow-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin: 0 0 22px;
+    font-size: 0.8rem;
+    color: var(--ink-soft);
+  }
+  .flow-legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .flow-legend i {
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+    border: 1px solid var(--rule);
+    background: var(--paper-raised);
+    display: inline-block;
+  }
+  .flow-legend i.decision {
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--brass) 14%, var(--paper-raised));
+    border-color: color-mix(in srgb, var(--brass) 45%, var(--rule));
+  }
+  .flow-legend i.jira {
+    border-style: dashed;
+    border-color: var(--ledger);
+    background: color-mix(in srgb, var(--ledger) 12%, var(--paper-raised));
+  }
+  .flow-legend i.docs { border-left: 3px solid var(--brass); }
+  .flow-legend i.terminal { background: var(--brass-ink); border-color: var(--brass-ink); }
+
+  .flow-svg-outer { width: 100%; overflow-x: auto; }
+  .flow-svg { width: 100%; height: auto; display: block; min-width: 640px; overflow: visible; }
+
+  .flow-node {
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    border-radius: 10px;
+    border: 1px solid var(--rule);
+    background: var(--paper-raised);
+    box-shadow: var(--shadow);
+    padding: 7px 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    text-align: center;
+  }
+  .flow-node .t {
+    font-family: "SF Mono", Consolas, monospace;
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: var(--ledger-soft);
+    line-height: 1.25;
+  }
+  .flow-node .d { font-size: 0.66rem; color: var(--ink-soft); line-height: 1.32; }
+
+  .flow-node--decision {
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--brass) 14%, var(--paper-raised));
+    border-color: color-mix(in srgb, var(--brass) 45%, var(--rule));
+  }
+  .flow-node--decision .t { color: var(--brass-ink); }
+  .flow-node--decision .t::before { content: "? "; }
+
+  .flow-node--jira {
+    border-style: dashed;
+    border-color: var(--ledger);
+    background: color-mix(in srgb, var(--ledger) 12%, var(--paper-raised));
+  }
+  .flow-node--jira .t { color: var(--ledger-soft); }
+
+  .flow-node--docs { border-left: 3px solid var(--brass); text-align: left; align-items: flex-start; }
+
+  .flow-node--terminal { background: var(--brass-ink); border-color: var(--brass-ink); }
+  .flow-node--terminal .t, .flow-node--terminal .d { color: #fff; }
+
+  .flow-edge { fill: none; stroke: var(--rule); stroke-width: 1.6; }
+  .flow-edge--dashed { opacity: 0.72; }
+  .flow-arrow-fill { fill: var(--rule); }
+  .flow-edge-label {
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    font-size: 10.5px;
+    fill: var(--ink-soft);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .flow-edge-anim {
+      stroke-dasharray: 6 5;
+      animation: flowDash 1.1s linear infinite;
+      animation-delay: calc(var(--i, 0) * 0.15s);
+    }
+    .flow-node-anim {
+      animation: flowGlow 8s ease-in-out infinite;
+      animation-delay: calc(var(--i, 0) * 0.38s);
+    }
+  }
+  @keyframes flowDash { to { stroke-dashoffset: -22; } }
+  @keyframes flowGlow {
+    0%, 90%, 100% { filter: none; }
+    6% { filter: drop-shadow(0 0 6px var(--brass)); }
+  }
 </style>
 
 <div class="masthead">
@@ -541,19 +765,9 @@
         <circle cx="20" cy="17.5" r="2.3" fill="var(--yellow)" stroke="var(--ink)" stroke-width="0.6"/>
         <rect x="11" y="22.5" width="10" height="2.2" rx="1.1" fill="var(--yellow)" opacity="0.85" stroke="var(--ink)" stroke-width="0.5"/>
       </svg>
-      Kido<span class="rule-dot">·</span><span class="mono" style="font-size:0.85rem; color:var(--ink-soft);">pipeline runbook</span>
+      Kido<span class="rule-dot">·</span><span class="mono" style="font-size:0.85rem; color:var(--ink-soft);">toolkit</span>
     </div>
     <div class="masthead-right">
-      <nav class="stage-nav" aria-label="Jump to stage">
-        <a href="#s0" title="kido init">0</a>
-        <a href="#s1" title="/kido:document">1</a>
-        <a href="#s2" title="/kido:specify">2</a>
-        <a href="#s3" title="/kido:tasks">3</a>
-        <a href="#s4" title="kido jira pull + branch">4</a>
-        <a href="#s5" title="/kido:apply">5</a>
-        <a href="#s6" title="/kido:review">6</a>
-        <a href="#s7" title="/kido:archive">7</a>
-      </nav>
       <button class="theme-toggle" type="button" aria-label="Toggle theme">
         <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
           <circle cx="12" cy="12" r="4"/>
@@ -584,6 +798,123 @@
     });
   })();
 </script>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <nav class="sidebar-nav" aria-label="Kido toolkit pages">
+      <a href="#docs">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>
+        Overview
+      </a>
+      <a href="#runbook">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+        Pipeline Runbook
+      </a>
+      <a href="#flow">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="2.4"/><circle cx="6" cy="18" r="2.4"/><circle cx="18" cy="12" r="2.4"/><path d="M6 8.4V15.6M8.2 7.2 15.8 11M8.2 16.8 15.8 13"/></svg>
+        Flow Diagram
+      </a>
+    </nav>
+    <div class="sidebar-hint">Running example: <b style="color:var(--ink);">pricing-service</b>, a brownfield microservice — Swap Pricing, a currencies endpoint, and a reconnect bug.</div>
+  </aside>
+
+  <main class="main">
+
+    <section class="page" id="page-docs">
+      <div class="doc-wrap">
+        <p class="eyebrow">Overview</p>
+        <h1 style="font-size:2rem; line-height:1.2; margin-bottom:14px;">What Kido is, and how it's used</h1>
+        <p style="color:var(--ink-soft); max-width:66ch; margin-bottom:30px;">Kido is a spec-driven collaboration workflow for a BA and a Dev working through AI agents on a shared unit of work — inspired by <b style="color:var(--ink);">OpenSpec</b>'s proposal&nbsp;→&nbsp;design&nbsp;→&nbsp;tasks&nbsp;→&nbsp;apply&nbsp;→&nbsp;archive pipeline and <b style="color:var(--ink);">mattpocock/skills</b>' library of independent team disciplines. It works across greenfield (nothing exists yet) and brownfield (existing codebase to reconcile with) projects, one microservice repo at a time, and ships as an installable npm CLI (<code>kido</code>) plus generated Claude Code skills/commands — not a one-off script or a manual checklist.</p>
+
+        <div class="doc-section">
+          <h2>Who does what</h2>
+          <table class="doc-table">
+            <tr><th>Role</th><th>Responsibility</th></tr>
+            <tr><td>BA</td><td>Writes functional specs, breaks them into Jira Epics/Stories. Has no git push access — Jira, not git, is the handoff to Dev.</td></tr>
+            <tr><td>Dev</td><td>Writes technical specs, implements against the spec with TDD, code-reviews, pushes to git and opens the PR.</td></tr>
+          </table>
+        </div>
+
+        <div class="doc-section">
+          <h2>What gets scaffolded in the repo</h2>
+          <p>Running <code>kido init</code> once per microservice repo creates:</p>
+          <div class="filecard">
+            <div class="filecard-head"><span>tree</span></div>
+            <pre>&lt;microservice-repo&gt;/
+├── kido/
+│   ├── docs/
+│   │   ├── {project}-functional-docs.md   <span class="muted"># BA-facing</span>
+│   │   └── {project}-technical-docs.md    <span class="muted"># Dev-facing</span>
+│   └── changes/
+│       ├── &lt;change-name&gt;/                <span class="muted"># one per feature/bug in flight</span>
+│       └── archive/                       <span class="muted"># moved here by /kido:archive</span>
+└── .claude/
+    ├── skills/mr-*/SKILL.md               <span class="muted"># orchestration logic</span>
+    └── commands/kido/*.md                 <span class="muted"># /kido:* commands</span></pre>
+          </div>
+          <p><code>kido/changes/</code> (once archived) is committed to git — the durable record of why the codebase looks the way it does. <code>.claude/</code> stays untracked; it's fully regeneratable via <code>kido init</code>.</p>
+        </div>
+
+        <div class="doc-section">
+          <h2>CLI commands (data-ops only)</h2>
+          <table class="doc-table">
+            <tr><th>Command</th><th>Behavior</th></tr>
+            <tr><td><code>kido init</code></td><td>Scaffolds kido/docs + kido/changes, generates skills/commands.</td></tr>
+            <tr><td><code>kido new-change</code></td><td>Scaffolds kido/changes/&lt;name&gt; with the right starter files.</td></tr>
+            <tr><td><code>kido status</code></td><td>Reports which artifacts exist/are complete for a change.</td></tr>
+            <tr><td><code>kido validate</code></td><td>Checks required artifacts are present before archiving.</td></tr>
+            <tr><td><code>kido archive</code></td><td>Moves a change folder into changes/archive/.</td></tr>
+            <tr><td><code>kido jira sync</code></td><td>Pushes spec/tasks/bug content to Jira — idempotent create-or-update.</td></tr>
+            <tr><td><code>kido jira pull</code></td><td>Reverse of sync — materializes a whole change from any Jira key.</td></tr>
+            <tr><td><code>kido docs export</code></td><td>Copies kido/docs/* into another repo — cross-repo seeding.</td></tr>
+          </table>
+        </div>
+
+        <div class="doc-section">
+          <h2>Generated skills/commands — the actual pipeline</h2>
+          <table class="doc-table">
+            <tr><th>Command</th><th>Behavior</th></tr>
+            <tr><td><code>/kido:document</code></td><td>Brownfield-only 5-phase discovery; also refreshes existing docs any time.</td></tr>
+            <tr><td><code>/kido:specify</code></td><td>BA's entry point — bug/feature fork, functional-spec.md, a checkpoint (push? new or existing Epic?), then design.md.</td></tr>
+            <tr><td><code>/kido:tasks</code></td><td>BA-run, vertical-slice task breakdown — new-Epic mode only.</td></tr>
+            <tr><td><code>/kido:apply</code></td><td>Dev's entry point — pulls from Jira if needed, creates the branch, implements with TDD.</td></tr>
+            <tr><td><code>/kido:review</code></td><td>Spec-traceability + standards — runs per-task and on demand.</td></tr>
+            <tr><td><code>/kido:archive</code></td><td>Commit, optionally refresh docs, archive the change, sync Jira — always last.</td></tr>
+          </table>
+        </div>
+
+        <div class="doc-section">
+          <h2>Jira hierarchy</h2>
+          <p><code>functional-spec.md</code> becomes its own Epic by default, or a single Story nested under an existing Epic for small, single-unit features. <code>tasks.md</code> tasks become Stories directly under the Epic. <code>bug.md</code> becomes a Bug ticket, same tracker, distinct type. Every sync point — either direction — asks first, never silent.</p>
+        </div>
+
+        <div class="doc-section">
+          <h2>Out of scope for v1</h2>
+          <ul>
+            <li>Gemini CLI / Kilo Code renderers — Claude Code only for now (the architecture supports adding them later).</li>
+            <li>Cross-microservice functional specs — one store per microservice, owner-microservice model only.</li>
+            <li>Same-session BA+Dev live collaboration — async handoff only, Jira is the transport.</li>
+            <li>Bidirectional/continuous Jira sync — <code>kido jira pull</code> is a one-shot materialize, not an ongoing two-way sync.</li>
+          </ul>
+        </div>
+
+        <p style="font-size:0.86rem; color:var(--ink-soft);">See the <a href="#runbook">Pipeline Runbook</a> for a full worked example with real command output, or the <a href="#flow">Flow Diagram</a> for the whole pipeline at a glance.</p>
+      </div>
+    </section>
+
+    <section class="page" id="page-runbook">
+      <div class="runbook-nav-bar">
+        <nav class="stage-nav" aria-label="Jump to stage">
+          <a href="#s0" title="kido init">0</a>
+          <a href="#s1" title="/kido:document">1</a>
+          <a href="#s2" title="/kido:specify">2</a>
+          <a href="#s3" title="/kido:tasks">3</a>
+          <a href="#s4" title="kido jira pull + branch">4</a>
+          <a href="#s5" title="/kido:apply">5</a>
+          <a href="#s6" title="/kido:review">6</a>
+          <a href="#s7" title="/kido:archive">7</a>
+        </nav>
+      </div>
 
 <div class="intro">
   <svg class="kido-logo hero" width="52" height="52" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="margin-bottom: 18px;">
@@ -1013,3 +1344,146 @@ Updated PROJ-501, PROJ-502, PROJ-503 → <span class="ok">Done</span></pre>
 <div class="colophon">
   Reflects the pipeline as currently implemented — every file, prompt, and command shown here is real, not illustrative. A fourth shape — a feature under an existing Epic that <em>does</em> need multiple tasks — isn't supported yet: <code>kido jira pull</code> would have no way to tell that feature's Stories apart from unrelated ones sharing the same Epic. <code>/kido:specify</code> steers that case toward "new Epic" instead rather than producing something it can't reconstruct correctly. Separately, one open question on the git side: if the code-commit PR merges before the archive-docs commit gets pushed, pushing to the same feature branch is risky (many teams auto-delete branches after merge) — reorder into one PR vs. detect merge state and commit to main directly are both still on the table.
 </div>
+    </section>
+
+    <section class="page" id="page-flow">
+      <div class="flow-wrap">
+        <p class="eyebrow">Flow diagram</p>
+        <h1 style="font-size:2rem; line-height:1.2; margin-bottom:14px;">The whole pipeline, at a glance</h1>
+        <p style="color:var(--ink-soft); max-width:66ch; margin-bottom:22px;">Every stage, decision point, and Jira object in the default (new-Epic, feature) path, redrawn from the pipeline's own dependency graph. Follow the highlight as it travels top to bottom.</p>
+
+        <div class="flow-legend">
+          <span><i></i> action / step</span>
+          <span><i class="decision"></i> ask / decision</span>
+          <span><i class="jira"></i> Jira object</span>
+          <span><i class="docs"></i> knowledge store</span>
+          <span><i class="terminal"></i> terminal step</span>
+        </div>
+
+        <div class="flow-svg-outer">
+          <svg class="flow-svg" viewBox="0 0 900 1800" role="img" aria-label="Kido pipeline flow diagram" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <marker id="flowArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path class="flow-arrow-fill" d="M0,0 L10,5 L0,10 z"></path>
+              </marker>
+            </defs>
+
+            <g fill="none">
+              <path class="flow-edge flow-edge-anim" style="--i:0" marker-end="url(#flowArrow)" d="M450,70 L450,106"></path>
+              <path class="flow-edge flow-edge-anim" style="--i:1" marker-end="url(#flowArrow)" d="M450,178 L450,222"></path>
+              <path class="flow-edge flow-edge-anim" style="--i:2" marker-end="url(#flowArrow)" d="M345,261 C260,261 220,300 215,330"></path>
+              <path class="flow-edge flow-edge-anim" style="--i:3" marker-end="url(#flowArrow)" d="M555,261 C640,261 680,300 685,330"></path>
+              <path class="flow-edge flow-edge-anim" style="--i:4" marker-end="url(#flowArrow)" d="M345,145 C160,160 70,350 70,488 C70,600 200,606 304,606"></path>
+              <path class="flow-edge flow-edge-anim" style="--i:5" marker-end="url(#flowArrow)" d="M215,416 C215,435 300,440 360,446"></path>
+              <path class="flow-edge flow-edge-anim" style="--i:6" marker-end="url(#flowArrow)" d="M685,416 C685,435 600,440 540,446"></path>
+              <path class="flow-edge flow-edge-anim flow-edge--dashed" style="--i:7" marker-end="url(#flowArrow)" d="M260,416 C240,470 260,530 370,554"></path>
+              <path class="flow-edge flow-edge-anim flow-edge--dashed" style="--i:8" marker-end="url(#flowArrow)" d="M640,416 C660,470 640,530 530,554"></path>
+              <path class="flow-edge flow-edge-anim" style="--i:9" marker-end="url(#flowArrow)" d="M380,652 C320,670 260,680 210,690"></path>
+              <path class="flow-edge flow-edge-anim" style="--i:10" marker-end="url(#flowArrow)" d="M520,652 C600,670 660,680 695,690"></path>
+              <path class="flow-edge flow-edge-anim" style="--i:11" marker-end="url(#flowArrow)" d="M260,776 C320,795 360,805 400,810"></path>
+              <path class="flow-edge flow-edge-anim flow-edge--dashed" style="--i:12" marker-end="url(#flowArrow)" d="M695,772 C695,850 600,900 520,924"></path>
+              <path class="flow-edge flow-edge-anim" style="--i:13" marker-end="url(#flowArrow)" d="M450,888 L450,924"></path>
+              <path class="flow-edge flow-edge-anim" style="--i:14" marker-end="url(#flowArrow)" d="M450,1010 L450,1040"></path>
+              <path class="flow-edge flow-edge-anim" style="--i:15" marker-end="url(#flowArrow)" d="M450,1112 L450,1142"></path>
+              <path class="flow-edge flow-edge-anim" style="--i:16" marker-end="url(#flowArrow)" d="M450,1228 L450,1258"></path>
+              <path class="flow-edge flow-edge-anim" style="--i:17" marker-end="url(#flowArrow)" d="M450,1344 L450,1374"></path>
+              <path class="flow-edge flow-edge-anim" style="--i:18" marker-end="url(#flowArrow)" d="M450,1446 L450,1476"></path>
+              <path class="flow-edge flow-edge-anim flow-edge--dashed" style="--i:19" marker-end="url(#flowArrow)" d="M340,1515 C160,1510 40,1200 40,700 C40,500 70,410 106,376"></path>
+              <path class="flow-edge flow-edge-anim" style="--i:20" marker-end="url(#flowArrow)" d="M450,1548 L450,1578"></path>
+              <path class="flow-edge flow-edge-anim flow-edge--dashed" style="--i:21" marker-end="url(#flowArrow)" d="M600,1617 C780,1610 860,1300 860,900 C860,800 830,760 794,734"></path>
+              <path class="flow-edge flow-edge-anim flow-edge--dashed" style="--i:22" marker-end="url(#flowArrow)" d="M300,1617 C120,1610 120,1000 250,900 C300,880 320,860 351,852"></path>
+              <path class="flow-edge flow-edge-anim" style="--i:23" marker-end="url(#flowArrow)" d="M450,1650 L450,1680"></path>
+            </g>
+
+            <g>
+              <text class="flow-edge-label" x="464" y="200">yes</text>
+              <text class="flow-edge-label" x="222" y="292">brownfield</text>
+              <text class="flow-edge-label" x="648" y="292" text-anchor="end">greenfield</text>
+              <text class="flow-edge-label" x="78" y="192">no</text>
+              <text class="flow-edge-label" x="222" y="434">writes</text>
+              <text class="flow-edge-label" x="598" y="434">writes</text>
+              <text class="flow-edge-label" x="222" y="674">new Epic</text>
+              <text class="flow-edge-label" x="602" y="674">push?</text>
+              <text class="flow-edge-label" x="266" y="800">push?</text>
+              <text class="flow-edge-label" x="640" y="838">by key</text>
+              <text class="flow-edge-label" x="464" y="1246">required first</text>
+            </g>
+
+            <g>
+              <foreignObject x="350" y="16" width="200" height="54" style="--i:0"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node flow-node-anim"><div class="t">kido init</div><div class="d">scaffold kido/ + .claude/</div></div></foreignObject>
+
+              <foreignObject x="345" y="112" width="210" height="66" style="--i:1"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node flow-node--decision flow-node-anim"><div class="t">kido/docs missing</div></div></foreignObject>
+
+              <foreignObject x="345" y="228" width="210" height="66" style="--i:2"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node flow-node--decision flow-node-anim"><div class="t">repo already has code</div></div></foreignObject>
+
+              <foreignObject x="100" y="336" width="230" height="80" style="--i:3"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node flow-node-anim"><div class="t">/kido:document</div><div class="d">brownfield · 5-phase discovery, writes docs</div></div></foreignObject>
+
+              <foreignObject x="570" y="336" width="230" height="80" style="--i:4"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node flow-node-anim"><div class="t">/kido:specify (docs mode)</div><div class="d">greenfield · builds kido/docs inline</div></div></foreignObject>
+
+              <foreignObject x="300" y="452" width="300" height="72" style="--i:5"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node flow-node--docs flow-node-anim"><div class="t">kido/docs</div><div class="d">functional-docs.md + technical-docs.md — read by specify, tasks, apply, review</div></div></foreignObject>
+
+              <foreignObject x="310" y="560" width="280" height="92" style="--i:6"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node flow-node-anim"><div class="t">/kido:specify</div><div class="d">functional-spec.md → checkpoint: push? new/existing Epic? continue to design?</div></div></foreignObject>
+
+              <foreignObject x="100" y="696" width="220" height="80" style="--i:7"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node flow-node-anim"><div class="t">/kido:tasks</div><div class="d">BA-run · vertical-slice breakdown (new Epic mode only)</div></div></foreignObject>
+
+              <foreignObject x="590" y="696" width="210" height="76" style="--i:8"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node flow-node--jira flow-node-anim"><div class="t">Jira Epic</div><div class="d">functional-spec.md + design.md, two labeled sections</div></div></foreignObject>
+
+              <foreignObject x="345" y="816" width="210" height="72" style="--i:9"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node flow-node--jira flow-node-anim"><div class="t">Jira Stories</div><div class="d">= tasks.md tasks, one Story each</div></div></foreignObject>
+
+              <foreignObject x="320" y="930" width="260" height="80" style="--i:10"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node flow-node-anim"><div class="t">kido jira pull</div><div class="d">Dev's entry point — materializes the change by key</div></div></foreignObject>
+
+              <foreignObject x="340" y="1046" width="220" height="66" style="--i:11"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node flow-node--decision flow-node-anim"><div class="t">create branch</div><div class="d">feature/JIRA-ID-slug</div></div></foreignObject>
+
+              <foreignObject x="320" y="1148" width="260" height="80" style="--i:12"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node flow-node-anim"><div class="t">/kido:apply</div><div class="d">1 subagent per task · TDD, failing test first</div></div></foreignObject>
+
+              <foreignObject x="310" y="1264" width="280" height="80" style="--i:13"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node flow-node-anim"><div class="t">/kido:review</div><div class="d">spec-traceability + standards</div></div></foreignObject>
+
+              <foreignObject x="320" y="1380" width="260" height="66" style="--i:14"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node flow-node--decision flow-node-anim"><div class="t">commit + push + PR</div></div></foreignObject>
+
+              <foreignObject x="340" y="1482" width="220" height="66" style="--i:15"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node flow-node--decision flow-node-anim"><div class="t">update kido/docs</div><div class="d">yes → scoped refresh, loops back</div></div></foreignObject>
+
+              <foreignObject x="300" y="1584" width="300" height="66" style="--i:16"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node flow-node--decision flow-node-anim"><div class="t">sync local edits to Jira</div><div class="d">yes → kido jira sync, loops back</div></div></foreignObject>
+
+              <foreignObject x="330" y="1686" width="240" height="66" style="--i:17"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node flow-node--terminal flow-node-anim"><div class="t">/kido:archive</div><div class="d">archive + update Jira — always last</div></div></foreignObject>
+            </g>
+          </svg>
+        </div>
+
+        <p style="font-size:0.86rem; color:var(--ink-soft);">This traces the default new-Epic feature path. The small-feature (existing Epic) and bug-fix shortcuts, and every real console/file output shown here, are in the <a href="#runbook">Pipeline Runbook</a>.</p>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+  (function () {
+    var pages = ["docs", "runbook", "flow"];
+
+    function show(page) {
+      pages.forEach(function (p) {
+        var el = document.getElementById("page-" + p);
+        if (el) el.classList.toggle("active", p === page);
+      });
+      document.querySelectorAll(".sidebar-nav a").forEach(function (a) {
+        a.classList.toggle("active", a.getAttribute("href") === "#" + page);
+      });
+    }
+
+    function handle() {
+      var token = (location.hash || "").replace("#", "");
+      if (pages.indexOf(token) !== -1) {
+        show(token);
+        return;
+      }
+      if (/^s\d+$/.test(token) && document.getElementById("page-runbook").querySelector("#" + token)) {
+        show("runbook");
+        return;
+      }
+      if (!document.querySelector(".page.active")) show("docs");
+    }
+
+    window.addEventListener("hashchange", handle);
+    handle();
+  })();
+</script>
