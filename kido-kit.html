@@ -1,7 +1,7 @@
 <script>
   (function () {
     var stored = localStorage.getItem("kido-theme");
-    document.documentElement.setAttribute("data-theme", stored === "dark" ? "dark" : "light");
+    document.documentElement.setAttribute("data-theme", stored === "light" ? "light" : "dark");
   })();
 </script>
 <meta charset="UTF-8" />
@@ -696,6 +696,31 @@
     font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
     text-align: center;
   }
+
+  /* Tagged nodes: foreignObject is 14px taller than the visible card so the
+     role badge (which sits above the card's own border) never gets clipped
+     by the SVG foreignObject's viewport. */
+  .flow-node-wrap { position: relative; width: 100%; height: 100%; }
+  .flow-node-wrap .flow-node { position: absolute; left: 0; top: 14px; width: 100%; height: calc(100% - 14px); }
+
+  .flow-role {
+    position: absolute;
+    top: 0;
+    left: 10px;
+    z-index: 1;
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    padding: 1px 7px;
+    border-radius: 20px;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    white-space: nowrap;
+    line-height: 1.4;
+  }
+  .flow-role--ba { color: var(--brass-ink); border-color: color-mix(in srgb, var(--brass) 45%, var(--rule)); }
+  .flow-role--dev { color: var(--ledger-soft); border-color: color-mix(in srgb, var(--ledger) 45%, var(--rule)); }
   .flow-node .t {
     font-family: "SF Mono", Consolas, monospace;
     font-size: 0.76rem;
@@ -765,7 +790,7 @@
         <circle cx="20" cy="17.5" r="2.3" fill="var(--yellow)" stroke="var(--ink)" stroke-width="0.6"/>
         <rect x="11" y="22.5" width="10" height="2.2" rx="1.1" fill="var(--yellow)" opacity="0.85" stroke="var(--ink)" stroke-width="0.5"/>
       </svg>
-      Kido<span class="rule-dot">·</span><span class="mono" style="font-size:0.85rem; color:var(--ink-soft);">toolkit</span>
+      kido-KIT
     </div>
     <div class="masthead-right">
       <button class="theme-toggle" type="button" aria-label="Toggle theme">
@@ -857,6 +882,7 @@
 
         <div class="doc-section">
           <h2>CLI commands (data-ops only)</h2>
+          <p><b style="color:var(--ink);">Run by a human in a terminal, not by an agent.</b> These are plain subcommands of the installed <code>kido</code> binary — data-ops only, no orchestration or judgment calls. Either role can type them directly any time (e.g. <code>kido status --change X</code> to check progress); the <code>/kido:*</code> skills below also shell out to a few of these automatically as part of running a pipeline stage, but that's a convenience, not a requirement.</p>
           <table class="doc-table">
             <tr><th>Command</th><th>Behavior</th></tr>
             <tr><td><code>kido init</code></td><td>Scaffolds kido/docs + kido/changes, generates skills/commands.</td></tr>
@@ -885,7 +911,7 @@
 
         <div class="doc-section">
           <h2>Jira hierarchy</h2>
-          <p><code>functional-spec.md</code> becomes its own Epic by default, or a single Story nested under an existing Epic for small, single-unit features. <code>tasks.md</code> tasks become Stories directly under the Epic. <code>bug.md</code> becomes a Bug ticket, same tracker, distinct type. Every sync point — either direction — asks first, never silent.</p>
+          <p><code>functional-spec.md</code> becomes its own Epic by default, or a single Story nested under an existing Epic for small, single-unit features. Either way, the Epic/Story's description is a short auto-extracted summary — the full <code>functional-spec.md</code> (and <code>design.md</code>, once written) are attached to the ticket as real files, not embedded inline; <code>kido jira pull</code> reconstructs them byte-exact from those attachments. <code>tasks.md</code> tasks become Stories directly under the Epic, description inline (real Jira formatting — headings/lists/bold/code, not raw markdown text). <code>bug.md</code> becomes a Bug ticket, same tracker, distinct type, also inline. Every sync point — either direction — asks first, never silent.</p>
         </div>
 
         <div class="doc-section">
@@ -1133,8 +1159,10 @@ Created Epic <span class="ok">PROJ-501</span> (https://acme.atlassian.net/browse
 
 <span class="prompt">$</span> kido jira sync --change add-swap-pricing
 Updated Epic PROJ-501
-<span class="dim"># functional-spec.md + design.md, two labeled sections in one</span>
-<span class="dim"># description — Jira's hierarchy has no separate tier for design.md</span></pre>
+<span class="dim"># Epic description = an auto-extracted summary + note that the full</span>
+<span class="dim"># files are attached; functional-spec.md and design.md themselves are</span>
+<span class="dim"># uploaded as real Jira attachments — Jira's hierarchy has no separate</span>
+<span class="dim"># tier for design.md, so this is how both stay attached to one ticket</span></pre>
         </div>
       </div>
       <div class="fork-card">
@@ -1350,7 +1378,7 @@ Updated PROJ-501, PROJ-502, PROJ-503 → <span class="ok">Done</span></pre>
       <div class="flow-wrap">
         <p class="eyebrow">Flow diagram</p>
         <h1 style="font-size:2rem; line-height:1.2; margin-bottom:14px;">The whole pipeline, at a glance</h1>
-        <p style="color:var(--ink-soft); max-width:66ch; margin-bottom:22px;">Every stage, decision point, and Jira object in the default (new-Epic, feature) path, redrawn from the pipeline's own dependency graph. Follow the highlight as it travels top to bottom.</p>
+        <p style="color:var(--ink-soft); max-width:66ch; margin-bottom:22px;">Every stage, decision point, and Jira object in the default (new-Epic feature) path <b style="color:var(--ink);">plus the bug-fix fork</b>, redrawn from the pipeline's own dependency graph. Follow the highlight as it travels top to bottom.</p>
 
         <div class="flow-legend">
           <span><i></i> action / step</span>
@@ -1358,10 +1386,12 @@ Updated PROJ-501, PROJ-502, PROJ-503 → <span class="ok">Done</span></pre>
           <span><i class="jira"></i> Jira object</span>
           <span><i class="docs"></i> knowledge store</span>
           <span><i class="terminal"></i> terminal step</span>
+          <span><b style="color:var(--brass-ink);">BA</b> tag — who runs it</span>
+          <span><b style="color:var(--ledger-soft);">DEV</b> tag — who runs it</span>
         </div>
 
         <div class="flow-svg-outer">
-          <svg class="flow-svg" viewBox="0 0 900 1800" role="img" aria-label="Kido pipeline flow diagram" xmlns="http://www.w3.org/2000/svg">
+          <svg class="flow-svg" viewBox="0 0 1180 1900" role="img" aria-label="Kido pipeline flow diagram" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <marker id="flowArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
                 <path class="flow-arrow-fill" d="M0,0 L10,5 L0,10 z"></path>
@@ -1369,87 +1399,100 @@ Updated PROJ-501, PROJ-502, PROJ-503 → <span class="ok">Done</span></pre>
             </defs>
 
             <g fill="none">
-              <path class="flow-edge flow-edge-anim" style="--i:0" marker-end="url(#flowArrow)" d="M450,70 L450,106"></path>
-              <path class="flow-edge flow-edge-anim" style="--i:1" marker-end="url(#flowArrow)" d="M450,178 L450,222"></path>
-              <path class="flow-edge flow-edge-anim" style="--i:2" marker-end="url(#flowArrow)" d="M345,261 C260,261 220,300 215,330"></path>
-              <path class="flow-edge flow-edge-anim" style="--i:3" marker-end="url(#flowArrow)" d="M555,261 C640,261 680,300 685,330"></path>
-              <path class="flow-edge flow-edge-anim" style="--i:4" marker-end="url(#flowArrow)" d="M345,145 C160,160 70,350 70,488 C70,600 200,606 304,606"></path>
-              <path class="flow-edge flow-edge-anim" style="--i:5" marker-end="url(#flowArrow)" d="M215,416 C215,435 300,440 360,446"></path>
-              <path class="flow-edge flow-edge-anim" style="--i:6" marker-end="url(#flowArrow)" d="M685,416 C685,435 600,440 540,446"></path>
-              <path class="flow-edge flow-edge-anim flow-edge--dashed" style="--i:7" marker-end="url(#flowArrow)" d="M260,416 C240,470 260,530 370,554"></path>
-              <path class="flow-edge flow-edge-anim flow-edge--dashed" style="--i:8" marker-end="url(#flowArrow)" d="M640,416 C660,470 640,530 530,554"></path>
-              <path class="flow-edge flow-edge-anim" style="--i:9" marker-end="url(#flowArrow)" d="M380,652 C320,670 260,680 210,690"></path>
-              <path class="flow-edge flow-edge-anim" style="--i:10" marker-end="url(#flowArrow)" d="M520,652 C600,670 660,680 695,690"></path>
-              <path class="flow-edge flow-edge-anim" style="--i:11" marker-end="url(#flowArrow)" d="M260,776 C320,795 360,805 400,810"></path>
-              <path class="flow-edge flow-edge-anim flow-edge--dashed" style="--i:12" marker-end="url(#flowArrow)" d="M695,772 C695,850 600,900 520,924"></path>
-              <path class="flow-edge flow-edge-anim" style="--i:13" marker-end="url(#flowArrow)" d="M450,888 L450,924"></path>
-              <path class="flow-edge flow-edge-anim" style="--i:14" marker-end="url(#flowArrow)" d="M450,1010 L450,1040"></path>
-              <path class="flow-edge flow-edge-anim" style="--i:15" marker-end="url(#flowArrow)" d="M450,1112 L450,1142"></path>
-              <path class="flow-edge flow-edge-anim" style="--i:16" marker-end="url(#flowArrow)" d="M450,1228 L450,1258"></path>
-              <path class="flow-edge flow-edge-anim" style="--i:17" marker-end="url(#flowArrow)" d="M450,1344 L450,1374"></path>
-              <path class="flow-edge flow-edge-anim" style="--i:18" marker-end="url(#flowArrow)" d="M450,1446 L450,1476"></path>
-              <path class="flow-edge flow-edge-anim flow-edge--dashed" style="--i:19" marker-end="url(#flowArrow)" d="M340,1515 C160,1510 40,1200 40,700 C40,500 70,410 106,376"></path>
-              <path class="flow-edge flow-edge-anim" style="--i:20" marker-end="url(#flowArrow)" d="M450,1548 L450,1578"></path>
-              <path class="flow-edge flow-edge-anim flow-edge--dashed" style="--i:21" marker-end="url(#flowArrow)" d="M600,1617 C780,1610 860,1300 860,900 C860,800 830,760 794,734"></path>
-              <path class="flow-edge flow-edge-anim flow-edge--dashed" style="--i:22" marker-end="url(#flowArrow)" d="M300,1617 C120,1610 120,1000 250,900 C300,880 320,860 351,852"></path>
-              <path class="flow-edge flow-edge-anim" style="--i:23" marker-end="url(#flowArrow)" d="M450,1650 L450,1680"></path>
+              <path class="flow-edge flow-edge-anim" style="--i:0" marker-end="url(#flowArrow)" d="M500,70 L500,106"></path>
+              <path class="flow-edge flow-edge-anim" style="--i:1" marker-end="url(#flowArrow)" d="M500,178 L500,222"></path>
+              <path class="flow-edge flow-edge-anim" style="--i:2" marker-end="url(#flowArrow)" d="M395,261 C310,261 280,300 265,330"></path>
+              <path class="flow-edge flow-edge-anim" style="--i:3" marker-end="url(#flowArrow)" d="M605,261 C690,261 720,300 735,330"></path>
+              <path class="flow-edge flow-edge-anim" style="--i:4" marker-end="url(#flowArrow)" d="M395,145 C210,160 120,350 120,488 C120,600 270,585 401,585"></path>
+              <path class="flow-edge flow-edge-anim" style="--i:5" marker-end="url(#flowArrow)" d="M265,416 C265,435 350,440 410,446"></path>
+              <path class="flow-edge flow-edge-anim" style="--i:6" marker-end="url(#flowArrow)" d="M735,416 C735,435 650,440 590,446"></path>
+              <path class="flow-edge flow-edge-anim flow-edge--dashed" style="--i:7" marker-end="url(#flowArrow)" d="M310,416 C290,470 380,520 455,546"></path>
+              <path class="flow-edge flow-edge-anim flow-edge--dashed" style="--i:8" marker-end="url(#flowArrow)" d="M690,416 C710,470 620,520 545,546"></path>
+              <path class="flow-edge flow-edge-anim" style="--i:9" marker-end="url(#flowArrow)" d="M450,618 C440,628 430,636 420,644"></path>
+              <path class="flow-edge flow-edge-anim" style="--i:10" marker-end="url(#flowArrow)" d="M550,618 C650,618 750,630 795,644"></path>
+              <path class="flow-edge flow-edge-anim" style="--i:11" marker-end="url(#flowArrow)" d="M360,742 C320,760 280,775 260,790"></path>
+              <path class="flow-edge flow-edge-anim" style="--i:12" marker-end="url(#flowArrow)" d="M480,742 C600,760 680,775 745,790"></path>
+              <path class="flow-edge flow-edge-anim" style="--i:13" marker-end="url(#flowArrow)" d="M795,730 C900,750 1000,770 1035,790"></path>
+              <path class="flow-edge flow-edge-anim" style="--i:14" marker-end="url(#flowArrow)" d="M310,876 C360,895 400,905 450,910"></path>
+              <path class="flow-edge flow-edge-anim flow-edge--dashed" style="--i:15" marker-end="url(#flowArrow)" d="M745,872 C745,950 650,1000 590,1024"></path>
+              <path class="flow-edge flow-edge-anim flow-edge--dashed" style="--i:16" marker-end="url(#flowArrow)" d="M1035,872 C1035,970 750,1010 624,1010"></path>
+              <path class="flow-edge flow-edge-anim" style="--i:17" marker-end="url(#flowArrow)" d="M500,988 L500,1024"></path>
+              <path class="flow-edge flow-edge-anim" style="--i:18" marker-end="url(#flowArrow)" d="M500,1110 L500,1140"></path>
+              <path class="flow-edge flow-edge-anim" style="--i:19" marker-end="url(#flowArrow)" d="M500,1212 L500,1242"></path>
+              <path class="flow-edge flow-edge-anim" style="--i:20" marker-end="url(#flowArrow)" d="M500,1328 L500,1358"></path>
+              <path class="flow-edge flow-edge-anim" style="--i:21" marker-end="url(#flowArrow)" d="M500,1444 L500,1474"></path>
+              <path class="flow-edge flow-edge-anim" style="--i:22" marker-end="url(#flowArrow)" d="M500,1546 L500,1576"></path>
+              <path class="flow-edge flow-edge-anim flow-edge--dashed" style="--i:23" marker-end="url(#flowArrow)" d="M390,1615 C210,1610 90,1300 90,700 C90,500 120,410 156,376"></path>
+              <path class="flow-edge flow-edge-anim" style="--i:24" marker-end="url(#flowArrow)" d="M500,1648 L500,1678"></path>
+              <path class="flow-edge flow-edge-anim flow-edge--dashed" style="--i:25" marker-end="url(#flowArrow)" d="M650,1717 C950,1710 1060,1300 1060,900 C1060,850 900,840 844,834"></path>
+              <path class="flow-edge flow-edge-anim flow-edge--dashed" style="--i:26" marker-end="url(#flowArrow)" d="M350,1717 C170,1710 170,1100 350,950 C370,940 385,948 401,952"></path>
+              <path class="flow-edge flow-edge-anim" style="--i:27" marker-end="url(#flowArrow)" d="M500,1750 L500,1780"></path>
             </g>
 
             <g>
-              <text class="flow-edge-label" x="464" y="200">yes</text>
-              <text class="flow-edge-label" x="222" y="292">brownfield</text>
-              <text class="flow-edge-label" x="648" y="292" text-anchor="end">greenfield</text>
-              <text class="flow-edge-label" x="78" y="192">no</text>
-              <text class="flow-edge-label" x="222" y="434">writes</text>
-              <text class="flow-edge-label" x="598" y="434">writes</text>
-              <text class="flow-edge-label" x="222" y="674">new Epic</text>
-              <text class="flow-edge-label" x="602" y="674">push?</text>
-              <text class="flow-edge-label" x="266" y="800">push?</text>
-              <text class="flow-edge-label" x="640" y="838">by key</text>
-              <text class="flow-edge-label" x="464" y="1246">required first</text>
+              <text class="flow-edge-label" x="516" y="200">yes</text>
+              <text class="flow-edge-label" x="272" y="292">brownfield</text>
+              <text class="flow-edge-label" x="698" y="292" text-anchor="end">greenfield</text>
+              <text class="flow-edge-label" x="128" y="192">no</text>
+              <text class="flow-edge-label" x="272" y="434">writes</text>
+              <text class="flow-edge-label" x="648" y="434">writes</text>
+              <text class="flow-edge-label" x="410" y="632">feature</text>
+              <text class="flow-edge-label" x="650" y="632">bug</text>
+              <text class="flow-edge-label" x="272" y="774">new Epic</text>
+              <text class="flow-edge-label" x="652" y="774">push?</text>
+              <text class="flow-edge-label" x="336" y="898">push?</text>
+              <text class="flow-edge-label" x="695" y="838">by key</text>
+              <text class="flow-edge-label" x="985" y="838">by key</text>
+              <text class="flow-edge-label" x="514" y="1346">required first</text>
             </g>
 
             <g>
-              <foreignObject x="350" y="16" width="200" height="54" style="--i:0"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node flow-node-anim"><div class="t">kido init</div><div class="d">scaffold kido/ + .claude/</div></div></foreignObject>
+              <foreignObject x="400" y="2" width="200" height="68" style="--i:0"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node-wrap"><div class="flow-role flow-role--ba">BA</div><div class="flow-node flow-node-anim"><div class="t">kido init</div><div class="d">scaffold kido/ + .claude/</div></div></div></foreignObject>
 
-              <foreignObject x="345" y="112" width="210" height="66" style="--i:1"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node flow-node--decision flow-node-anim"><div class="t">kido/docs missing</div></div></foreignObject>
+              <foreignObject x="395" y="98" width="210" height="80" style="--i:1"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node-wrap"><div class="flow-role flow-role--ba">BA</div><div class="flow-node flow-node--decision flow-node-anim"><div class="t">kido/docs missing</div></div></div></foreignObject>
 
-              <foreignObject x="345" y="228" width="210" height="66" style="--i:2"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node flow-node--decision flow-node-anim"><div class="t">repo already has code</div></div></foreignObject>
+              <foreignObject x="395" y="214" width="210" height="80" style="--i:2"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node-wrap"><div class="flow-role flow-role--ba">BA</div><div class="flow-node flow-node--decision flow-node-anim"><div class="t">repo already has code</div></div></div></foreignObject>
 
-              <foreignObject x="100" y="336" width="230" height="80" style="--i:3"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node flow-node-anim"><div class="t">/kido:document</div><div class="d">brownfield · 5-phase discovery, writes docs</div></div></foreignObject>
+              <foreignObject x="150" y="322" width="230" height="94" style="--i:3"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node-wrap"><div class="flow-role flow-role--ba">BA</div><div class="flow-node flow-node-anim"><div class="t">/kido:document</div><div class="d">brownfield · 5-phase discovery, writes docs</div></div></div></foreignObject>
 
-              <foreignObject x="570" y="336" width="230" height="80" style="--i:4"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node flow-node-anim"><div class="t">/kido:specify (docs mode)</div><div class="d">greenfield · builds kido/docs inline</div></div></foreignObject>
+              <foreignObject x="620" y="322" width="230" height="94" style="--i:4"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node-wrap"><div class="flow-role flow-role--ba">BA</div><div class="flow-node flow-node-anim"><div class="t">/kido:specify (docs mode)</div><div class="d">greenfield · builds kido/docs inline</div></div></div></foreignObject>
 
-              <foreignObject x="300" y="452" width="300" height="72" style="--i:5"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node flow-node--docs flow-node-anim"><div class="t">kido/docs</div><div class="d">functional-docs.md + technical-docs.md — read by specify, tasks, apply, review</div></div></foreignObject>
+              <foreignObject x="350" y="452" width="300" height="72" style="--i:5"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node flow-node--docs flow-node-anim"><div class="t">kido/docs</div><div class="d">functional-docs.md + technical-docs.md — read by specify, tasks, apply, review</div></div></foreignObject>
 
-              <foreignObject x="310" y="560" width="280" height="92" style="--i:6"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node flow-node-anim"><div class="t">/kido:specify</div><div class="d">functional-spec.md → checkpoint: push? new/existing Epic? continue to design?</div></div></foreignObject>
+              <foreignObject x="395" y="538" width="210" height="80" style="--i:6"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node-wrap"><div class="flow-role flow-role--ba">BA</div><div class="flow-node flow-node--decision flow-node-anim"><div class="t">bug or feature</div></div></div></foreignObject>
 
-              <foreignObject x="100" y="696" width="220" height="80" style="--i:7"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node flow-node-anim"><div class="t">/kido:tasks</div><div class="d">BA-run · vertical-slice breakdown (new Epic mode only)</div></div></foreignObject>
+              <foreignObject x="280" y="636" width="280" height="106" style="--i:7"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node-wrap"><div class="flow-role flow-role--ba">BA · DEV</div><div class="flow-node flow-node-anim"><div class="t">/kido:specify</div><div class="d">functional-spec.md → checkpoint: push? new/existing Epic? continue to design?</div></div></div></foreignObject>
 
-              <foreignObject x="590" y="696" width="210" height="76" style="--i:8"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node flow-node--jira flow-node-anim"><div class="t">Jira Epic</div><div class="d">functional-spec.md + design.md, two labeled sections</div></div></foreignObject>
+              <foreignObject x="680" y="636" width="230" height="94" style="--i:8"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node-wrap"><div class="flow-role flow-role--ba">BA</div><div class="flow-node flow-node-anim"><div class="t">/kido:specify (bug fork)</div><div class="d">bug.md — same grilling rigor, no design/tasks split</div></div></div></foreignObject>
 
-              <foreignObject x="345" y="816" width="210" height="72" style="--i:9"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node flow-node--jira flow-node-anim"><div class="t">Jira Stories</div><div class="d">= tasks.md tasks, one Story each</div></div></foreignObject>
+              <foreignObject x="150" y="782" width="220" height="94" style="--i:9"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node-wrap"><div class="flow-role flow-role--ba">BA</div><div class="flow-node flow-node-anim"><div class="t">/kido:tasks</div><div class="d">BA-run · vertical-slice breakdown (new Epic mode only)</div></div></div></foreignObject>
 
-              <foreignObject x="320" y="930" width="260" height="80" style="--i:10"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node flow-node-anim"><div class="t">kido jira pull</div><div class="d">Dev's entry point — materializes the change by key</div></div></foreignObject>
+              <foreignObject x="640" y="782" width="210" height="90" style="--i:10"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node-wrap"><div class="flow-role flow-role--ba">BA</div><div class="flow-node flow-node--jira flow-node-anim"><div class="t">Jira Epic</div><div class="d">Summary description; functional-spec.md + design.md attached</div></div></div></foreignObject>
 
-              <foreignObject x="340" y="1046" width="220" height="66" style="--i:11"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node flow-node--decision flow-node-anim"><div class="t">create branch</div><div class="d">feature/JIRA-ID-slug</div></div></foreignObject>
+              <foreignObject x="930" y="782" width="210" height="90" style="--i:11"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node-wrap"><div class="flow-role flow-role--ba">BA</div><div class="flow-node flow-node--jira flow-node-anim"><div class="t">Jira Bug</div><div class="d">bug.md → one Bug ticket, same tracker</div></div></div></foreignObject>
 
-              <foreignObject x="320" y="1148" width="260" height="80" style="--i:12"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node flow-node-anim"><div class="t">/kido:apply</div><div class="d">1 subagent per task · TDD, failing test first</div></div></foreignObject>
+              <foreignObject x="395" y="902" width="210" height="86" style="--i:12"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node-wrap"><div class="flow-role flow-role--ba">BA</div><div class="flow-node flow-node--jira flow-node-anim"><div class="t">Jira Stories</div><div class="d">= tasks.md tasks, one Story each</div></div></div></foreignObject>
 
-              <foreignObject x="310" y="1264" width="280" height="80" style="--i:13"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node flow-node-anim"><div class="t">/kido:review</div><div class="d">spec-traceability + standards</div></div></foreignObject>
+              <foreignObject x="370" y="1016" width="260" height="94" style="--i:13"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node-wrap"><div class="flow-role flow-role--dev">DEV</div><div class="flow-node flow-node-anim"><div class="t">kido jira pull</div><div class="d">Dev's entry point — materializes the change by key</div></div></div></foreignObject>
 
-              <foreignObject x="320" y="1380" width="260" height="66" style="--i:14"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node flow-node--decision flow-node-anim"><div class="t">commit + push + PR</div></div></foreignObject>
+              <foreignObject x="390" y="1132" width="220" height="80" style="--i:14"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node-wrap"><div class="flow-role flow-role--dev">DEV</div><div class="flow-node flow-node--decision flow-node-anim"><div class="t">create branch</div><div class="d">feature/JIRA-ID-slug</div></div></div></foreignObject>
 
-              <foreignObject x="340" y="1482" width="220" height="66" style="--i:15"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node flow-node--decision flow-node-anim"><div class="t">update kido/docs</div><div class="d">yes → scoped refresh, loops back</div></div></foreignObject>
+              <foreignObject x="370" y="1234" width="260" height="94" style="--i:15"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node-wrap"><div class="flow-role flow-role--dev">DEV</div><div class="flow-node flow-node-anim"><div class="t">/kido:apply</div><div class="d">1 subagent per task (feature) or single TDD pass (bug/small) · failing test first</div></div></div></foreignObject>
 
-              <foreignObject x="300" y="1584" width="300" height="66" style="--i:16"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node flow-node--decision flow-node-anim"><div class="t">sync local edits to Jira</div><div class="d">yes → kido jira sync, loops back</div></div></foreignObject>
+              <foreignObject x="360" y="1350" width="280" height="94" style="--i:16"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node-wrap"><div class="flow-role flow-role--dev">DEV</div><div class="flow-node flow-node-anim"><div class="t">/kido:review</div><div class="d">spec-traceability + standards</div></div></div></foreignObject>
 
-              <foreignObject x="330" y="1686" width="240" height="66" style="--i:17"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node flow-node--terminal flow-node-anim"><div class="t">/kido:archive</div><div class="d">archive + update Jira — always last</div></div></foreignObject>
+              <foreignObject x="370" y="1466" width="260" height="80" style="--i:17"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node-wrap"><div class="flow-role flow-role--dev">DEV</div><div class="flow-node flow-node--decision flow-node-anim"><div class="t">commit + push + PR</div></div></div></foreignObject>
+
+              <foreignObject x="390" y="1568" width="220" height="80" style="--i:18"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node-wrap"><div class="flow-role flow-role--dev">DEV</div><div class="flow-node flow-node--decision flow-node-anim"><div class="t">update kido/docs</div><div class="d">yes → scoped refresh, loops back</div></div></div></foreignObject>
+
+              <foreignObject x="350" y="1670" width="300" height="80" style="--i:19"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node-wrap"><div class="flow-role flow-role--dev">DEV</div><div class="flow-node flow-node--decision flow-node-anim"><div class="t">sync local edits to Jira</div><div class="d">yes → kido jira sync, loops back</div></div></div></foreignObject>
+
+              <foreignObject x="380" y="1772" width="240" height="80" style="--i:20"><div xmlns="http://www.w3.org/1999/xhtml" class="flow-node-wrap"><div class="flow-role flow-role--dev">DEV</div><div class="flow-node flow-node--terminal flow-node-anim"><div class="t">/kido:archive</div><div class="d">archive + update Jira — always last</div></div></div></foreignObject>
             </g>
           </svg>
         </div>
 
-        <p style="font-size:0.86rem; color:var(--ink-soft);">This traces the default new-Epic feature path. The small-feature (existing Epic) and bug-fix shortcuts, and every real console/file output shown here, are in the <a href="#runbook">Pipeline Runbook</a>.</p>
+        <p style="font-size:0.86rem; color:var(--ink-soft);">This traces the default new-Epic feature path plus the bug-fix fork off <code>/kido:specify</code>. The small-feature (existing Epic) shortcut — a single Story under an existing Epic, skipping <code>/kido:tasks</code> — and every real console/file output shown here are in the <a href="#runbook">Pipeline Runbook</a>.</p>
       </div>
     </section>
 

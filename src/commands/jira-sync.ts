@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, basename } from "node:path";
 import { resolveKidoPaths } from "../lib/kido-paths.js";
 import { readChangeMeta } from "../lib/change-meta.js";
 import { parseFrontmatter, setFrontmatterValue } from "../lib/frontmatter.js";
@@ -74,32 +74,66 @@ async function syncSingleIssueFile(client: JiraClient, path: string, issueType: 
   return result.key;
 }
 
-/** Syncs functional-spec.md (+ design.md, if present) to a single Epic — two labeled
- * sections in one description field, since Jira's hierarchy has no separate tier for
- * design.md (Epic -> Story only). Idempotency stays keyed off functional-spec.md's
- * jiraId frontmatter; design.md doesn't get its own Jira ID. */
+/** Positional heuristic only — never match specific heading text, since functional-spec.md has
+ * no enforced section-naming schema: everything up to the first `##` after the title is treated
+ * as "the overview," whatever it's titled. */
+function firstSection(body: string): string {
+  const match = /\n##\s+/.exec(body);
+  return (match ? body.slice(0, match.index) : body).trim();
+}
+
+/** The Epic/feature-Story description is a short summary, not the full spec — the full
+ * functional-spec.md/design.md content goes up as real file attachments instead (see
+ * attachSpecFiles), both because it's more readable for a BA/PM-facing ticket and because it
+ * makes kido jira pull's reconstruction byte-exact instead of a lossy markdown<->ADF round trip. */
+function buildAttachSummary(specDescription: string, hasDesign: boolean): string {
+  const overview = firstSection(specDescription);
+  const filesNote = hasDesign
+    ? "The full **functional-spec.md** and **design.md** are attached to this ticket."
+    : "The full **functional-spec.md** is attached to this ticket.";
+  return overview ? `${overview}\n\n${filesNote}` : filesNote;
+}
+
+/** Uploads specPath (+ designPath) as real-file attachments on `key`, deleting any existing
+ * attachment with the same filename first — Jira can't update an attachment in place, so without
+ * this, re-syncing would pile up duplicate copies on every run. Must be called *after* the issue
+ * is created/updated and *after* any frontmatter write to specPath (jiraId), since attachFile
+ * re-reads the file from disk — this is what lets jira-pull.ts reconstruct the file with its
+ * jiraId frontmatter already intact, with no separate injection step needed on that side.
+ * Attachment matching is by exact filename — a manually-attached unrelated file sharing one of
+ * these exact names would get silently replaced, but that's an unlikely enough scenario to accept. */
+async function attachSpecFiles(client: JiraClient, key: string, specPath: string, designPath?: string): Promise<void> {
+  const filePaths = designPath ? [specPath, designPath] : [specPath];
+  const existing = await client.getIssue(key);
+  for (const filePath of filePaths) {
+    const filename = basename(filePath);
+    const stale = existing.attachments?.find((a) => a.filename === filename);
+    if (stale) await client.deleteAttachment(stale.id);
+    await client.attachFile(key, filePath);
+  }
+}
+
+/** Syncs functional-spec.md (+ design.md, if present) to a single Epic. Description is an
+ * auto-extracted summary (see buildAttachSummary); the full files go up as attachments, not
+ * embedded in the description. Idempotency stays keyed off functional-spec.md's jiraId
+ * frontmatter; design.md doesn't get its own Jira ID. */
 async function syncEpic(client: JiraClient, specPath: string, designPath: string | undefined): Promise<string> {
   const specContent = readFileSync(specPath, "utf8");
   const { frontmatter, body: specBody } = parseFrontmatter(specContent);
   const { title, body: specDescription } = extractTitleAndBody(specBody);
-
-  let description = specDescription;
-  if (designPath) {
-    const designContent = readFileSync(designPath, "utf8");
-    const { body: designBody } = parseFrontmatter(designContent);
-    const { body: designDescription } = extractTitleAndBody(designBody);
-    description = `## Functional Spec\n\n${specDescription}\n\n## Design\n\n${designDescription}`;
-  }
+  const description = buildAttachSummary(specDescription, Boolean(designPath));
 
   const existingKey = frontmatter.jiraId as string | undefined;
   if (existingKey) {
     await client.updateIssue(existingKey, { summary: title, description });
+    await attachSpecFiles(client, existingKey, specPath, designPath);
     console.log(`Updated Epic ${existingKey}`);
     return existingKey;
   }
 
   const result = await client.createIssue({ summary: title, description, issueType: "Epic" });
   writeFileSync(specPath, setFrontmatterValue(specContent, "jiraId", result.key), "utf8");
+  await attachSpecFiles(client, result.key, specPath, designPath);
   console.log(`Created Epic ${result.key} (${result.url})`);
   return result.key;
 }
@@ -107,8 +141,9 @@ async function syncEpic(client: JiraClient, specPath: string, designPath: string
 /** Syncs functional-spec.md (+ design.md, if present) as a single Story nested under an
  * Epic BA already has — for a small, self-contained feature that doesn't need its own
  * Epic. Always prefixes with "## Functional Spec" (even before design.md exists), unlike
- * syncEpic's conditional header — that's the stable signal `kido jira pull` later uses to
- * recognize a self-contained feature-spec Story vs. an ordinary task Story. */
+ * syncEpic's plain summary — that's the stable signal `kido jira pull` later uses to
+ * recognize a self-contained feature-spec Story vs. an ordinary task Story. Same
+ * summary-in-description + full-files-attached shape as syncEpic otherwise. */
 async function syncFeatureStory(
   client: JiraClient,
   specPath: string,
@@ -118,24 +153,19 @@ async function syncFeatureStory(
   const specContent = readFileSync(specPath, "utf8");
   const { frontmatter, body: specBody } = parseFrontmatter(specContent);
   const { title, body: specDescription } = extractTitleAndBody(specBody);
-
-  let description = `## Functional Spec\n\n${specDescription}`;
-  if (designPath) {
-    const designContent = readFileSync(designPath, "utf8");
-    const { body: designBody } = parseFrontmatter(designContent);
-    const { body: designDescription } = extractTitleAndBody(designBody);
-    description += `\n\n## Design\n\n${designDescription}`;
-  }
+  const description = `## Functional Spec\n\n${buildAttachSummary(specDescription, Boolean(designPath))}`;
 
   const existingKey = frontmatter.jiraId as string | undefined;
   if (existingKey) {
     await client.updateIssue(existingKey, { summary: title, description });
+    await attachSpecFiles(client, existingKey, specPath, designPath);
     console.log(`Updated Story ${existingKey}`);
     return existingKey;
   }
 
   const result = await client.createIssue({ summary: title, description, issueType: "Story", parentKey: epicId });
   writeFileSync(specPath, setFrontmatterValue(specContent, "jiraId", result.key), "utf8");
+  await attachSpecFiles(client, result.key, specPath, designPath);
   console.log(`Created Story ${result.key} (${result.url}) under existing Epic ${epicId}`);
   return result.key;
 }

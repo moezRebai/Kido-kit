@@ -7,16 +7,24 @@ import { setFrontmatterValue } from "../lib/frontmatter.js";
 import { resolveJiraCredentials } from "../jira/credentials.js";
 import { JiraClient, type JiraIssueDetails } from "../jira/client.js";
 
-/** Reverse of jira-sync.ts's syncEpic/syncFeatureStory: splits a combined Epic or
- * feature-spec-Story description back into functional-spec.md's body and (if present)
- * design.md's body. Shape is identical either way — "## Functional Spec" / "## Design". */
-function splitEpicDescription(description: string): { functionalBody: string; designBody?: string } {
-  const parts = description.split(/\n##\s+Design\s*\n+/);
-  const functionalBody = (parts[0] ?? "").replace(/^##\s+Functional Spec\s*\n+/, "").trim();
-  if (parts.length < 2) {
-    return { functionalBody };
+/** Reverse of jira-sync.ts's attachSpecFiles: downloads a real-file attachment (functional-spec.md
+ * or design.md) straight into the change dir — byte-exact, since the description only ever holds
+ * a short summary now, not the full content. Returns false (and logs a note) if the issue has no
+ * such attachment, e.g. an Epic created via `--epic` that was never synced with a spec on disk. */
+async function writeAttachedFile(
+  client: JiraClient,
+  issue: JiraIssueDetails,
+  dir: string,
+  filename: string
+): Promise<boolean> {
+  const attachment = issue.attachments?.find((a) => a.filename === filename);
+  if (!attachment) {
+    console.log(`No ${filename} attachment on ${issue.key} — skipping.`);
+    return false;
   }
-  return { functionalBody, designBody: parts.slice(1).join("\n\n## Design\n\n").trim() };
+  const bytes = await client.downloadAttachmentContent(attachment.contentUrl);
+  writeFileSync(join(dir, filename), bytes);
+  return true;
 }
 
 /** syncFeatureStory (jira-sync.ts) always prefixes a small-feature Story's description
@@ -62,11 +70,8 @@ async function materializeFeature(
   }
   ensureDir(dir);
 
-  const { functionalBody, designBody } = splitEpicDescription(epic.description);
-  writeArtifact(join(dir, "functional-spec.md"), epic.summary, functionalBody, epic.key);
-  if (designBody) {
-    writeArtifact(join(dir, "design.md"), epic.summary, designBody);
-  }
+  await writeAttachedFile(client, epic, dir, "functional-spec.md");
+  await writeAttachedFile(client, epic, dir, "design.md");
 
   const children = await client.searchChildIssues(epic.key);
   if (children.length > 0) {
@@ -83,18 +88,20 @@ async function materializeFeature(
 
 /** A small, self-contained feature filed as a single Story under an Epic BA already had
  * (not one Kido created) — no tasks.md, since that mode never produces a task breakdown. */
-function materializeSmallFeature(repoRoot: string, story: JiraIssueDetails, asName: string | undefined): string {
+async function materializeSmallFeature(
+  client: JiraClient,
+  repoRoot: string,
+  story: JiraIssueDetails,
+  asName: string | undefined
+): Promise<string> {
   const { name, dir } = resolveChangeDir(repoRoot, story.summary, asName);
   if (existsSync(dir)) {
     console.log(`Change "${name}" already exists at ${dir} — overwriting from ${story.key}.`);
   }
   ensureDir(dir);
 
-  const { functionalBody, designBody } = splitEpicDescription(story.description);
-  writeArtifact(join(dir, "functional-spec.md"), story.summary, functionalBody, story.key);
-  if (designBody) {
-    writeArtifact(join(dir, "design.md"), story.summary, designBody);
-  }
+  await writeAttachedFile(client, story, dir, "functional-spec.md");
+  await writeAttachedFile(client, story, dir, "design.md");
 
   writeChangeMeta(dir, { type: "feature", createdAt: new Date().toISOString() });
   console.log(`Pulled ${story.key} into ${dir} (small feature under an existing Epic — no tasks.md)`);
@@ -118,7 +125,7 @@ export async function runJiraPull(repoRoot: string, key: string, asName?: string
   let epic = issue;
   if (issue.issueType === "Story") {
     if (looksLikeFeatureSpec(issue.description)) {
-      return materializeSmallFeature(repoRoot, issue, asName);
+      return materializeSmallFeature(client, repoRoot, issue, asName);
     }
     if (!issue.parentKey) {
       throw new Error(`Story ${issue.key} has no parent Epic — can't resolve full change context from it alone.`);

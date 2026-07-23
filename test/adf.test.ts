@@ -1,0 +1,96 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { markdownToAdf, adfToMarkdown } from "../src/jira/adf.js";
+
+test("markdownToAdf: heading becomes a heading node with the right level", () => {
+  const doc = markdownToAdf("## Section title");
+  assert.deepEqual(doc.content, [
+    { type: "heading", attrs: { level: 2 }, content: [{ type: "text", text: "Section title" }] },
+  ]);
+});
+
+test("markdownToAdf: inline marks (code/bold/italic/link)", () => {
+  const doc = markdownToAdf("Some `code`, **bold**, *italic*, and [a link](https://example.com).");
+  assert.deepEqual(doc.content, [
+    {
+      type: "paragraph",
+      content: [
+        { type: "text", text: "Some " },
+        { type: "text", text: "code", marks: [{ type: "code" }] },
+        { type: "text", text: ", " },
+        { type: "text", text: "bold", marks: [{ type: "strong" }] },
+        { type: "text", text: ", " },
+        { type: "text", text: "italic", marks: [{ type: "em" }] },
+        { type: "text", text: ", and " },
+        { type: "text", text: "a link", marks: [{ type: "link", attrs: { href: "https://example.com" } }] },
+        { type: "text", text: "." },
+      ],
+    },
+  ]);
+});
+
+test("markdownToAdf: flat bullet and ordered lists", () => {
+  const bullets = markdownToAdf("- one\n- two");
+  assert.equal(bullets.content[0]!.type, "bulletList");
+  const numbered = markdownToAdf("1. one\n2. two");
+  assert.equal(numbered.content[0]!.type, "orderedList");
+});
+
+test("markdownToAdf: fenced code block preserves language and text", () => {
+  const doc = markdownToAdf("```ts\nconst x = 1;\n```");
+  assert.deepEqual(doc.content, [
+    { type: "codeBlock", attrs: { language: "ts" }, content: [{ type: "text", text: "const x = 1;" }] },
+  ]);
+});
+
+test("markdownToAdf: mermaid fenced block round-trips as a plain codeBlock (Jira never renders it as a diagram)", () => {
+  const mermaid = "```mermaid\nflowchart TB\n  a --> b\n```";
+  const doc = markdownToAdf(mermaid);
+  assert.equal(doc.content[0]!.type, "codeBlock");
+  assert.equal((doc.content[0] as { attrs?: { language: string } }).attrs?.language, "mermaid");
+  assert.equal(adfToMarkdown(doc), mermaid);
+});
+
+test("markdownToAdf -> adfToMarkdown round-trips headings/lists/marks/code semantically", () => {
+  const markdown = [
+    "## Overview",
+    "",
+    "Some `code`, **bold**, and *italic* text.",
+    "",
+    "- one",
+    "- two",
+    "",
+    "```json",
+    '{ "a": 1 }',
+    "```",
+  ].join("\n");
+  const roundTripped = adfToMarkdown(markdownToAdf(markdown));
+  assert.match(roundTripped, /^## Overview/);
+  assert.match(roundTripped, /`code`/);
+  assert.match(roundTripped, /\*\*bold\*\*/);
+  assert.match(roundTripped, /\*italic\*/);
+  assert.match(roundTripped, /- one/);
+  assert.match(roundTripped, /- two/);
+  assert.match(roundTripped, /```json\n\{ "a": 1 \}\n```/);
+});
+
+test("adfToMarkdown: an unmodeled node type degrades to best-effort plain text instead of throwing", () => {
+  const doc = {
+    type: "doc",
+    version: 1,
+    content: [
+      {
+        type: "table",
+        content: [{ type: "text", text: "cell one" }, { type: "text", text: "cell two" }],
+      },
+    ],
+  };
+  assert.doesNotThrow(() => adfToMarkdown(doc));
+  assert.match(adfToMarkdown(doc), /cell one/);
+  assert.match(adfToMarkdown(doc), /cell two/);
+});
+
+test("adfToMarkdown: empty/missing content returns an empty string", () => {
+  assert.equal(adfToMarkdown(undefined), "");
+  assert.equal(adfToMarkdown({}), "");
+});
