@@ -5,6 +5,7 @@ import { ensureDir, isEmptyDir } from "../lib/fs-utils.js";
 import { resolveKidoPaths } from "../lib/kido-paths.js";
 import { PromptSession } from "../lib/prompt.js";
 import { copyKidoDocs } from "../lib/docs-copy.js";
+import { printWelcomeBanner } from "../lib/banner.js";
 import { stages } from "../pipeline/definition.js";
 import { renderAllClaudeCodeStages } from "../pipeline/renderers/claude-code.js";
 import {
@@ -107,6 +108,8 @@ async function handleJiraSetup(repoRoot: string, options: InitOptions, prompt: P
 }
 
 export async function runInit(repoRoot: string, options: InitOptions = {}): Promise<void> {
+  printWelcomeBanner();
+
   const paths = resolveKidoPaths(repoRoot);
 
   ensureDir(paths.docsDir);
