@@ -22,8 +22,8 @@ const ROWS: BannerRow[] = [
   { robot: "    #o#o#    ", text: "Spec-driven BA/Dev collaboration for microservices" },
   { robot: "    #####    ", text: "" },
   { robot: "     # #     ", text: "This setup will configure:" },
-  { robot: "    ## ##    ", text: "  • kido/docs/ + kido/changes/ scaffolding" },
-  { robot: BLANK_ROBOT, text: "  • Claude Code skills/commands under .claude/" },
+  { robot: "    ## ##    ", text: "  - kido/docs/ + kido/changes/ scaffolding" },
+  { robot: BLANK_ROBOT, text: "  - Claude Code skills/commands under .claude/" },
   { robot: BLANK_ROBOT, text: "" },
   { robot: BLANK_ROBOT, text: "Quick start after setup:" },
   { robot: BLANK_ROBOT, text: "  /kido:specify  ->  /kido:apply  ->  /kido:archive" },
@@ -32,7 +32,7 @@ const ROWS: BannerRow[] = [
 ];
 
 function supportsColor(): boolean {
-  return Boolean(process.stdout.isTTY) && !process.env.NO_COLOR;
+  return Boolean(process.stdout.isTTY) && process.env.NO_COLOR === undefined;
 }
 
 export function printWelcomeBanner(): void {
