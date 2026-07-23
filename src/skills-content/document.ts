@@ -24,7 +24,8 @@ Adapt the project's existing \`discover-and-document\` skill approach as-is — 
 
 Same process, but incremental:
 
-- **Scoping:** if invoked for a specific area (e.g. from an archive-time refresh, or a manual targeted re-run), don't re-scan the whole repo — focus the Map/Deep-dive passes on the affected area, but still validate against the rest for consistency.
+- **Scoping:** if invoked for a specific area (e.g. from an archive-time refresh, or a manual targeted re-run), scope entirely to that area — the change's own artifacts plus the code region they touch. Do not re-scan or re-read the rest of the repo. Cross-check new claims only against the existing \`kido/docs/\` text itself (so you don't contradict an already-written section) — never against the wider codebase.
+- **Trivial changes skip this skill entirely.** \`/kido:archive\` only re-invokes this skill for changes that add a capability or alter structure/API surface. A small addition or simple bug fix with no such impact gets its \`kido/docs/\` update written directly by \`/kido:archive\` inline — see its step 2 — without invoking discovery here at all.
 - **Don't overwrite sections that are already well-grounded** just because you're re-running — merge/update, don't blow away.
 - If re-invoked from \`/kido:archive\`'s "update /docs?" step, you'll be fed the change's own artifacts (\`functional-spec.md\`/\`design.md\`/\`tasks.md\`/\`bug.md\` + the actual diff) as extra grounding alongside re-reading just the affected code area.
 
