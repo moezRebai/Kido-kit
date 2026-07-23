@@ -53,7 +53,7 @@ State the detected status in plain language, then ask whether to continue straig
 export const continueStage: PipelineStage = {
   id: "continue",
   description:
-    "Read-only status/resume-point check across the whole pipeline — lists in-flight changes if none is named, detects which artifacts/frontmatter/Jira-sync/task-completion signals exist for the chosen one, and reports what to do next (optionally continuing straight into it). Safe to run anytime; never writes any artifact or Jira state.",
+    "Read-only status/resume-point check across the whole pipeline — lists in-flight changes if none is named, detects which artifacts/frontmatter/Jira-sync (and task-completion, where a marker is actually present) signals exist for the chosen one, and reports what to do next (optionally continuing straight into it). Safe to run anytime; never writes any artifact or Jira state.",
   allowedTools: "Bash(kido:*), Read, Glob, AskUserQuestion",
   body,
 };
