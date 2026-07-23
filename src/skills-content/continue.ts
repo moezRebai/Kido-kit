@@ -8,7 +8,10 @@ const body = `Report where a change stands in the pipeline and what to do next. 
 
 - **If the user names a change** (as a command argument or in their message, e.g. "continue swap-pricing") — look it up directly: check \`kido/changes/<name>/\` first, then \`kido/changes/archive/<name>/\` if it's not there. Skip straight to Step 2 for that name — or, if it's only found under \`archive/\`, report it's already archived and stop; there's nothing to continue.
 - **Otherwise**, \`Glob\` for \`kido/changes/*/\` (excluding \`kido/changes/archive/\`):
-  - **Zero changes** → say so plainly, point at \`/kido:specify\` to start one. Stop here.
+  - **Zero changes** → check whether \`kido/docs/\` is empty or missing too (same emptiness check \`/kido:specify\` itself makes before deciding whether to build docs inline or redirect to \`/kido:document\` — don't redo that fork here, just note whether docs exist):
+    - **No docs either** → "This looks like a brand new project — no docs and nothing in flight yet. Run \`/kido:specify\` to get started (it'll build \`kido/docs/\` first if needed)."
+    - **Docs exist** → "\`kido/docs/\` is in place, no changes in flight right now. Run \`/kido:specify\` to start one."
+    Either way, the next command is \`/kido:specify\` — this is color for the message, not a new fork; \`/kido:specify\` still owns deciding what to do about missing docs. Stop here.
   - **One change** → use it, but name it out loud (e.g. "Found one in-flight change: \`swap-pricing\`.") — never silently assume which one without saying so.
   - **Multiple changes** → run Step 2 for each, condensed to one line (name + coarse stage label, e.g. "functional-spec only", "tasks synced, 2/5 implemented"). Present the list and ask via \`AskUserQuestion\` which one to continue before giving detailed guidance on any single one.
 
