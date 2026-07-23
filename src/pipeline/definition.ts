@@ -21,6 +21,7 @@ import { tasksStage } from "../skills-content/tasks.js";
 import { applyStage } from "../skills-content/apply.js";
 import { reviewStage } from "../skills-content/review.js";
 import { archiveStage } from "../skills-content/archive.js";
+import { continueStage } from "../skills-content/continue.js";
 
 export const stages: PipelineStage[] = [
   documentStage,
@@ -29,4 +30,5 @@ export const stages: PipelineStage[] = [
   applyStage,
   reviewStage,
   archiveStage,
+  continueStage,
 ];
