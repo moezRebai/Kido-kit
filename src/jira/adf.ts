@@ -1,6 +1,8 @@
-// Ported from the standalone jira skill's scripts/adf.mjs (C:\Solutions\Skills\skills\jira) —
+// Ported from the standalone jira skill's scripts/adf.mjs (C:\Users\User\.claude\skills\jira) —
 // same dependency-free markdown<->ADF algorithm, typed. Not a runtime dependency on that skill;
-// see docs/superpowers/specs for why kido keeps its own copy.
+// see docs/superpowers/specs for why kido keeps its own copy. Includes that skill's fixes for
+// wrapped list-item continuation lines, and headings/lists glued directly to adjacent text with
+// no blank line (block-splitting now flushes on those triggers instead of only on blank lines).
 
 export type AdfMark =
   | { type: "code" }
@@ -81,10 +83,8 @@ function parseInline(text: string): AdfTextNode[] {
   return nodes;
 }
 
-/** Only recognizes a heading when the whole block is a single physical line — a heading glued
- * directly to body text with no blank line falls through to a literal paragraph. Never actually
- * hit by kido's own content: extractTitleAndBody/parseTasks always strip the heading line before
- * handing body text here, and jira-sync's "first section" extraction cuts before the first `##`. */
+/** Headings are always their own single-line block (splitIntoBlocks flushes before/after one),
+ * so lines.length === 1 is a reliable heading signal here, not a limitation. */
 function parseBlock(block: string): AdfBlockNode[] {
   const lines = block.split("\n");
 
@@ -104,13 +104,25 @@ function parseBlock(block: string): AdfBlockNode[] {
     return [node];
   }
 
-  const isBulletList = lines.every((l) => /^[-*]\s+/.test(l));
-  const isOrderedList = !isBulletList && lines.every((l) => /^\d+\.\s+/.test(l));
+  const isBulletList = /^[-*]\s+/.test(lines[0]!);
+  const isOrderedList = !isBulletList && /^\d+\.\s+/.test(lines[0]!);
   if (isBulletList || isOrderedList) {
     const itemRe = isBulletList ? /^[-*]\s+(.*)$/ : /^\d+\.\s+(.*)$/;
-    const items: AdfListItemNode[] = lines.map((l) => ({
+    // Lines that don't start a new item are continuation lines (wrapped text) of the item
+    // above them, folded in with a space — deciding list-type from lines[0] alone (rather than
+    // requiring every line to match the marker) is what makes this work.
+    const itemTexts: string[] = [];
+    for (const l of lines) {
+      const m = itemRe.exec(l);
+      if (m) {
+        itemTexts.push(m[1]!);
+      } else if (itemTexts.length) {
+        itemTexts[itemTexts.length - 1] += " " + l.trim();
+      }
+    }
+    const items: AdfListItemNode[] = itemTexts.map((text) => ({
       type: "listItem",
-      content: [{ type: "paragraph", content: parseInline(itemRe.exec(l)![1]!) }],
+      content: [{ type: "paragraph", content: parseInline(text) }],
     }));
     return [{ type: isBulletList ? "bulletList" : "orderedList", content: items }];
   }
@@ -123,26 +135,47 @@ function splitIntoBlocks(markdown: string): string[] {
   const blocks: string[] = [];
   let current: string[] = [];
   let inFence = false;
+
+  const flush = (): void => {
+    if (current.length) {
+      blocks.push(current.join("\n"));
+      current = [];
+    }
+  };
+
   for (const line of lines) {
     if (/^```/.test(line.trim())) {
+      if (!inFence) flush(); // a fence always starts its own block, even glued to prior text
       inFence = !inFence;
       current.push(line);
-      if (!inFence) {
-        blocks.push(current.join("\n"));
-        current = [];
-      }
+      if (!inFence) flush();
       continue;
     }
-    if (!inFence && line.trim() === "") {
-      if (current.length) {
-        blocks.push(current.join("\n"));
-        current = [];
-      }
+    if (inFence) {
+      current.push(line);
       continue;
+    }
+    if (line.trim() === "") {
+      flush();
+      continue;
+    }
+    if (/^#{1,6}\s+/.test(line)) {
+      // ATX headings are always their own block, per CommonMark, even without a blank line
+      // separating them from surrounding text.
+      flush();
+      blocks.push(line);
+      continue;
+    }
+    if (/^(?:[-*]\s+|\d+\.\s+)/.test(line) && current.length && !/^(?:[-*]\s+|\d+\.\s+)/.test(current[0]!)) {
+      // A list item glued directly under non-list text (no blank line) still starts a new
+      // block — otherwise it gets swallowed into that paragraph. A list item glued under an
+      // already-open list just continues it, and an indented continuation line of a wrapped
+      // item never matches here.
+      flush();
     }
     current.push(line);
   }
-  if (current.length) blocks.push(current.join("\n"));
+  flush();
   return blocks.map((b) => b.trim()).filter((b) => b.length > 0);
 }
 
