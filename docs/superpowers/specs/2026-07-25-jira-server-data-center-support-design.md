@@ -175,16 +175,20 @@ the two new env vars in the printed list.
 - `test/init-jira-setup.test.ts`: extended with cases for the new
   Server/DC branch — the PAT-labeled prompt, no email prompt, and
   `deploymentType: "server"` written to the credentials file.
-- `test/jira-sync.test.ts` / `test/jira-pull.test.ts`: their existing inline
-  fake-Jira-server helpers gain Server/DC coverage — asserting the
-  `Authorization: Bearer ...` header, the `/rest/api/2` path prefix, and
-  wiki-markup (not ADF) request bodies when the `JiraClient` under test is
-  constructed with `deploymentType: "server"` credentials. `jira-pull.test.ts`
-  additionally covers the `POST /rest/api/2/search` pagination path for
-  `searchChildIssues`.
-- No new shared fake-Jira-server module — matches Kido's existing pattern of
-  each test file owning its own inline fake server rather than a shared
-  `fake-jira-server.mjs`-style helper.
+- `test/jira-client-server-mode.test.ts` (new): a small, purpose-built fake
+  Server/DC HTTP server, driving `JiraClient` directly (not through the full
+  `jira sync`/`jira pull` command layer) — asserting the `Authorization:
+  Bearer ...` header, the `/rest/api/2` path prefix, wiki-markup (not ADF)
+  request bodies, and the `POST /rest/api/2/search` `startAt`/`maxResults`
+  pagination path for `searchChildIssues`. Chosen over retrofitting the
+  existing ~450-line Cloud-oriented fake servers in `jira-sync.test.ts`/
+  `jira-pull.test.ts` to branch on deployment type — smaller, more reliable
+  to get right, and still exercises every new branch in `client.ts`
+  end-to-end against a real (fake) HTTP server. The existing Cloud tests in
+  those two files are unchanged.
+- No new shared fake-Jira-server module beyond that one new file — matches
+  Kido's existing pattern of each test file owning its own inline fake
+  server rather than a shared `fake-jira-server.mjs`-style helper.
 
 ## Open questions
 
