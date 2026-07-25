@@ -12,6 +12,12 @@ export interface JiraIssueInput {
   issueType: JiraIssueType;
   /** Epic key to nest a Story under (Jira's "parent" field for team-managed projects). */
   parentKey?: string;
+  /** Matched case-insensitively against the project's real components; unresolvable = warn + omit.
+   * Typed `| undefined` (not just optional) because tsconfig has `exactOptionalPropertyTypes: true`,
+   * and callers (Task 4) pass through a regex capture that's `string | undefined`, not always-present. */
+  component?: string | undefined;
+  /** Maps to Jira's standard Priority field ("Criticality" in kido's task template); same resolution rule as component. */
+  priority?: string | undefined;
 }
 
 export interface JiraIssueResult {
@@ -63,10 +69,58 @@ async function withTlsEnv<T>(creds: JiraCredentials, fn: () => Promise<T>): Prom
 export class JiraClient {
   private readonly isServer: boolean;
   private readonly apiBase: string;
+  private componentsCache?: Promise<Map<string, string>>;
+  private prioritiesCache?: Promise<Map<string, string>>;
 
   constructor(private readonly creds: JiraCredentials) {
     this.isServer = creds.deploymentType === "server";
     this.apiBase = API_BASE[creds.deploymentType];
+  }
+
+  private async getProjectComponents(): Promise<Map<string, string>> {
+    if (!this.componentsCache) {
+      this.componentsCache = (async () => {
+        const response = await this.request(`${this.apiBase}/project/${this.creds.projectKey}/components`, { method: "GET" });
+        const data = (await response.json()) as Array<{ name: string }>;
+        return new Map(data.map((c) => [c.name.toLowerCase(), c.name]));
+      })();
+    }
+    return this.componentsCache;
+  }
+
+  private async getPriorities(): Promise<Map<string, string>> {
+    if (!this.prioritiesCache) {
+      this.prioritiesCache = (async () => {
+        const response = await this.request(`${this.apiBase}/priority`, { method: "GET" });
+        const data = (await response.json()) as Array<{ name: string }>;
+        return new Map(data.map((p) => [p.name.toLowerCase(), p.name]));
+      })();
+    }
+    return this.prioritiesCache;
+  }
+
+  /** Resolves component/priority (and, from Task 2 onward, sprintName) names into real Jira
+   * field values, warning and omitting anything that doesn't exist rather than failing the
+   * whole create/update — Jira's issue write is atomic, so an invalid value inline would fail
+   * every field, not just the bad one. `label` is the issue's own summary, used in warnings. */
+  private async resolveOptionalFields(
+    input: { component?: string | undefined; priority?: string | undefined },
+    label: string
+  ): Promise<Record<string, unknown>> {
+    const fields: Record<string, unknown> = {};
+    if (input.component) {
+      const components = await this.getProjectComponents();
+      const matched = components.get(input.component.toLowerCase());
+      if (matched) fields.components = [{ name: matched }];
+      else console.warn(`Warning: "${label}": Component "${input.component}" not found on this project — skipping.`);
+    }
+    if (input.priority) {
+      const priorities = await this.getPriorities();
+      const matched = priorities.get(input.priority.toLowerCase());
+      if (matched) fields.priority = { name: matched };
+      else console.warn(`Warning: "${label}": Priority "${input.priority}" not found on this Jira instance — skipping.`);
+    }
+    return fields;
   }
 
   private authHeader(): string {
@@ -114,6 +168,7 @@ export class JiraClient {
     if (input.parentKey) {
       fields.parent = { key: input.parentKey };
     }
+    Object.assign(fields, await this.resolveOptionalFields(input, input.summary));
 
     const response = await this.request(`${this.apiBase}/issue`, {
       method: "POST",
@@ -123,15 +178,18 @@ export class JiraClient {
     return { key: data.key, url: `${this.creds.baseUrl}/browse/${data.key}` };
   }
 
-  async updateIssue(key: string, input: Pick<JiraIssueInput, "summary" | "description">): Promise<void> {
+  async updateIssue(
+    key: string,
+    input: Pick<JiraIssueInput, "summary" | "description" | "component" | "priority">
+  ): Promise<void> {
+    const fields: Record<string, unknown> = {
+      summary: input.summary,
+      description: this.formatBody(input.description),
+    };
+    Object.assign(fields, await this.resolveOptionalFields(input, input.summary));
     await this.request(`${this.apiBase}/issue/${key}`, {
       method: "PUT",
-      body: JSON.stringify({
-        fields: {
-          summary: input.summary,
-          description: this.formatBody(input.description),
-        },
-      }),
+      body: JSON.stringify({ fields }),
     });
   }
 
