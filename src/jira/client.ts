@@ -18,6 +18,8 @@ export interface JiraIssueInput {
   component?: string | undefined;
   /** Maps to Jira's standard Priority field ("Criticality" in kido's task template); same resolution rule as component. */
   priority?: string | undefined;
+  /** Matched case-insensitively against the project's Scrum board's sprints; unresolvable = warn + omit. */
+  sprintName?: string | undefined;
 }
 
 export interface JiraIssueResult {
@@ -47,6 +49,10 @@ const API_BASE: Record<JiraCredentials["deploymentType"], string> = {
   server: "/rest/api/2",
 };
 
+// Jira Software's Agile REST API — versioned independently of /rest/api/{2,3} and identical
+// on Cloud and Server/Data Center, so it needs no deploymentType branching.
+const AGILE_API_BASE = "/rest/agile/1.0";
+
 // NODE_TLS_REJECT_UNAUTHORIZED is read on every TLS connect, so toggling it around a single
 // fetch() and restoring it afterward keeps the effect scoped to that call. Safe because Kido
 // issues Jira requests sequentially within one CLI invocation, never concurrently. Ported from
@@ -71,6 +77,9 @@ export class JiraClient {
   private readonly apiBase: string;
   private componentsCache?: Promise<Map<string, string>>;
   private prioritiesCache?: Promise<Map<string, string>>;
+  private sprintFieldIdCache?: Promise<string | undefined>;
+  private scrumBoardIdCache?: Promise<number | undefined>;
+  private boardSprintsCache?: Promise<Array<{ id: number; name: string }>>;
 
   constructor(private readonly creds: JiraCredentials) {
     this.isServer = creds.deploymentType === "server";
@@ -99,12 +108,55 @@ export class JiraClient {
     return this.prioritiesCache;
   }
 
-  /** Resolves component/priority (and, from Task 2 onward, sprintName) names into real Jira
-   * field values, warning and omitting anything that doesn't exist rather than failing the
-   * whole create/update — Jira's issue write is atomic, so an invalid value inline would fail
-   * every field, not just the bad one. `label` is the issue's own summary, used in warnings. */
+  private async findSprintFieldId(): Promise<string | undefined> {
+    if (!this.sprintFieldIdCache) {
+      this.sprintFieldIdCache = (async () => {
+        const response = await this.request(`${this.apiBase}/field`, { method: "GET" });
+        const fields = (await response.json()) as Array<{ id: string; schema?: { custom?: string } }>;
+        return fields.find((f) => f.schema?.custom === "com.pyxis.greenhopper.jira:gh-sprint")?.id;
+      })();
+    }
+    return this.sprintFieldIdCache;
+  }
+
+  private async findScrumBoardId(): Promise<number | undefined> {
+    if (!this.scrumBoardIdCache) {
+      this.scrumBoardIdCache = (async () => {
+        const response = await this.request(
+          `${AGILE_API_BASE}/board?projectKeyOrId=${encodeURIComponent(this.creds.projectKey)}&type=scrum`,
+          { method: "GET" }
+        );
+        const data = (await response.json()) as { values: Array<{ id: number }> };
+        return data.values[0]?.id;
+      })();
+    }
+    return this.scrumBoardIdCache;
+  }
+
+  private async getBoardSprints(boardId: number): Promise<Array<{ id: number; name: string }>> {
+    if (!this.boardSprintsCache) {
+      this.boardSprintsCache = (async () => {
+        const response = await this.request(`${AGILE_API_BASE}/board/${boardId}/sprint`, { method: "GET" });
+        const data = (await response.json()) as { values: Array<{ id: number; name: string }> };
+        return data.values;
+      })();
+    }
+    return this.boardSprintsCache;
+  }
+
+  private async resolveSprintId(sprintName: string): Promise<number | undefined> {
+    const boardId = await this.findScrumBoardId();
+    if (boardId === undefined) return undefined;
+    const sprints = await this.getBoardSprints(boardId);
+    return sprints.find((s) => s.name.toLowerCase() === sprintName.toLowerCase())?.id;
+  }
+
+  /** Resolves component/priority/sprintName names into real Jira field values, warning and
+   * omitting anything that doesn't exist rather than failing the whole create/update — Jira's
+   * issue write is atomic, so an invalid value inline would fail every field, not just the bad
+   * one. `label` is the issue's own summary, used in warnings. */
   private async resolveOptionalFields(
-    input: { component?: string | undefined; priority?: string | undefined },
+    input: { component?: string | undefined; priority?: string | undefined; sprintName?: string | undefined },
     label: string
   ): Promise<Record<string, unknown>> {
     const fields: Record<string, unknown> = {};
@@ -119,6 +171,19 @@ export class JiraClient {
       const matched = priorities.get(input.priority.toLowerCase());
       if (matched) fields.priority = { name: matched };
       else console.warn(`Warning: "${label}": Priority "${input.priority}" not found on this Jira instance — skipping.`);
+    }
+    if (input.sprintName) {
+      const sprintFieldId = await this.findSprintFieldId();
+      if (!sprintFieldId) {
+        console.warn(`Warning: "${label}": no Sprint field found on this Jira instance — skipping Sprint "${input.sprintName}".`);
+      } else {
+        const sprintId = await this.resolveSprintId(input.sprintName);
+        if (sprintId === undefined) {
+          console.warn(`Warning: "${label}": Sprint "${input.sprintName}" not found on the project's board — skipping.`);
+        } else {
+          fields[sprintFieldId] = sprintId;
+        }
+      }
     }
     return fields;
   }
@@ -180,7 +245,7 @@ export class JiraClient {
 
   async updateIssue(
     key: string,
-    input: Pick<JiraIssueInput, "summary" | "description" | "component" | "priority">
+    input: Pick<JiraIssueInput, "summary" | "description" | "component" | "priority" | "sprintName">
   ): Promise<void> {
     const fields: Record<string, unknown> = {
       summary: input.summary,
