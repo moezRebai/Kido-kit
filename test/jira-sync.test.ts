@@ -141,6 +141,36 @@ function startFakeJira(): Promise<{ server: Server; url: string; issues: Map<str
         return;
       }
 
+      if (req.method === "GET" && url.pathname === "/rest/api/3/project/TEST/components") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify([{ name: "payments-service" }]));
+        return;
+      }
+
+      if (req.method === "GET" && url.pathname === "/rest/api/3/priority") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify([{ name: "Highest" }, { name: "High" }, { name: "Medium" }, { name: "Low" }, { name: "Lowest" }]));
+        return;
+      }
+
+      if (req.method === "GET" && url.pathname === "/rest/api/3/field") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify([{ id: "customfield_10007", name: "Sprint", schema: { custom: "com.pyxis.greenhopper.jira:gh-sprint" } }]));
+        return;
+      }
+
+      if (req.method === "GET" && url.pathname === "/rest/agile/1.0/board") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ values: [{ id: 5, type: "scrum" }] }));
+        return;
+      }
+
+      if (req.method === "GET" && url.pathname === "/rest/agile/1.0/board/5/sprint") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ values: [{ id: 42, name: "Sprint 42" }] }));
+        return;
+      }
+
       res.writeHead(404);
       res.end();
     });
@@ -436,6 +466,119 @@ test("a tasks.md task with a bullet list, inline code, and bold labels gets real
     assert.match(markdown, /`SwapCalculator`/);
     assert.match(markdown, /- Support for fixed legs/);
     assert.match(markdown, /\*\*Depends on:\*\*/);
+  } finally {
+    server.close();
+    rmSync(repo, { recursive: true, force: true });
+    process.env = originalEnv;
+  }
+});
+
+test("a task's Component/Criticality/Sprint lines resolve into real Jira fields on the created Story", async () => {
+  const { server, url, issues } = await startFakeJira();
+  const repo = makeRepo();
+  const originalEnv = { ...process.env };
+
+  try {
+    setJiraEnv(url);
+
+    runNewChange(repo, "Add Swap Pricing", "feature");
+    const changeDir = resolveKidoPaths(repo).changeDir("add-swap-pricing");
+    writeFileSync(join(changeDir, "functional-spec.md"), "# Swap Pricing\n\nBAs need to price swaps.");
+    writeFileSync(
+      join(changeDir, "tasks.md"),
+      [
+        "## Task 1: Add calculator",
+        "",
+        "Implement it.",
+        "",
+        "**Depends on:** none",
+        "**Test:** unit test passes",
+        "**Component:** payments-service",
+        "**Criticality:** High",
+        "**Sprint:** Sprint 42",
+      ].join("\n")
+    );
+
+    await runJiraSync(repo, "add-swap-pricing");
+
+    const story = issues.get("TEST-2") as unknown as { components?: Array<{ name: string }>; priority?: { name: string }; [key: string]: unknown };
+    assert.deepEqual(story.components, [{ name: "payments-service" }]);
+    assert.deepEqual(story.priority, { name: "High" });
+    assert.equal(story["customfield_10007"], 42);
+  } finally {
+    server.close();
+    rmSync(repo, { recursive: true, force: true });
+    process.env = originalEnv;
+  }
+});
+
+test("an unresolvable Component warns but still creates the Story with everything else intact", async () => {
+  const { server, url, issues } = await startFakeJira();
+  const repo = makeRepo();
+  const originalEnv = { ...process.env };
+  const originalWarn = console.warn;
+  const warnings: string[] = [];
+  console.warn = (...args: unknown[]) => {
+    warnings.push(args.map(String).join(" "));
+  };
+
+  try {
+    setJiraEnv(url);
+
+    runNewChange(repo, "Add Swap Pricing", "feature");
+    const changeDir = resolveKidoPaths(repo).changeDir("add-swap-pricing");
+    writeFileSync(join(changeDir, "functional-spec.md"), "# Swap Pricing\n\nBAs need to price swaps.");
+    writeFileSync(
+      join(changeDir, "tasks.md"),
+      [
+        "## Task 1: Add calculator",
+        "",
+        "Implement it.",
+        "",
+        "**Depends on:** none",
+        "**Test:** unit test passes",
+        "**Component:** does-not-exist",
+      ].join("\n")
+    );
+
+    await runJiraSync(repo, "add-swap-pricing");
+
+    const story = issues.get("TEST-2") as unknown as { summary: string; components?: unknown };
+    assert.equal(story.summary, "Add calculator", "Story must still be created");
+    assert.ok(warnings.some((w) => w.includes("does-not-exist")));
+  } finally {
+    console.warn = originalWarn;
+    server.close();
+    rmSync(repo, { recursive: true, force: true });
+    process.env = originalEnv;
+  }
+});
+
+test("re-syncing a task with a changed Criticality line updates the Story's priority", async () => {
+  const { server, url, issues } = await startFakeJira();
+  const repo = makeRepo();
+  const originalEnv = { ...process.env };
+
+  try {
+    setJiraEnv(url);
+
+    runNewChange(repo, "Add Swap Pricing", "feature");
+    const changeDir = resolveKidoPaths(repo).changeDir("add-swap-pricing");
+    writeFileSync(join(changeDir, "functional-spec.md"), "# Swap Pricing\n\nBAs need to price swaps.");
+    writeFileSync(
+      join(changeDir, "tasks.md"),
+      ["## Task 1: Add calculator", "", "Implement it.", "", "**Depends on:** none", "**Test:** unit test passes", "**Criticality:** Low"].join("\n")
+    );
+    await runJiraSync(repo, "add-swap-pricing");
+
+    const tasksContent = readFileSync(join(changeDir, "tasks.md"), "utf8");
+    const updated = tasksContent.replace("**Criticality:** Low", "**Criticality:** High");
+    writeFileSync(join(changeDir, "tasks.md"), updated);
+
+    await runJiraSync(repo, "add-swap-pricing");
+
+    const story = issues.get("TEST-2") as unknown as { priority?: { name: string } };
+    assert.deepEqual(story.priority, { name: "High" });
   } finally {
     server.close();
     rmSync(repo, { recursive: true, force: true });

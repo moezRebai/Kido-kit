@@ -8,6 +8,9 @@ import { resolveJiraCredentials } from "../jira/credentials.js";
 import { JiraClient } from "../jira/client.js";
 
 const JIRA_LINE = /^\*\*Jira:\*\*\s*(\S+)\s*$/m;
+const COMPONENT_LINE = /^\*\*Component:\*\*\s*(.+)$/m;
+const CRITICALITY_LINE = /^\*\*Criticality:\*\*\s*(.+)$/m;
+const SPRINT_LINE = /^\*\*Sprint:\*\*\s*(.+)$/m;
 
 export async function runJiraSync(repoRoot: string, changeName: string, explicitEpicKey?: string): Promise<void> {
   const paths = resolveKidoPaths(repoRoot);
@@ -176,10 +179,14 @@ async function syncTasksAsStories(client: JiraClient, tasksPath: string, epicKey
   const tasks = parseTasks(content);
 
   for (const task of tasks) {
+    const component = COMPONENT_LINE.exec(task.body)?.[1]?.trim();
+    const priority = CRITICALITY_LINE.exec(task.body)?.[1]?.trim();
+    const sprintName = SPRINT_LINE.exec(task.body)?.[1]?.trim();
+
     const existingMatch = JIRA_LINE.exec(task.body);
     if (existingMatch) {
       const key = existingMatch[1]!;
-      await client.updateIssue(key, { summary: task.title, description: task.body });
+      await client.updateIssue(key, { summary: task.title, description: task.body, component, priority, sprintName });
       console.log(`Updated Story ${key}: ${task.title}`);
       continue;
     }
@@ -189,6 +196,9 @@ async function syncTasksAsStories(client: JiraClient, tasksPath: string, epicKey
       description: task.body,
       issueType: "Story",
       ...(epicKey ? { parentKey: epicKey } : {}),
+      component,
+      priority,
+      sprintName,
     });
     console.log(`Created Story ${result.key}: ${task.title} (${result.url})`);
 
