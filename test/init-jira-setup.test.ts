@@ -90,3 +90,61 @@ test("when credentials are already resolvable via an existing file, init doesn't
     rmSync(repo, { recursive: true, force: true });
   }
 });
+
+test("with no Jira credentials configured and no TTY, the guidance message lists the new deployment-type/TLS env vars too", async () => {
+  const repo = makeEmptyRepo();
+  const originalEnv = { ...process.env };
+  const originalLog = console.log;
+  const logged: string[] = [];
+  try {
+    delete process.env.KIDO_JIRA_BASE_URL;
+    delete process.env.KIDO_JIRA_EMAIL;
+    delete process.env.KIDO_JIRA_API_TOKEN;
+    delete process.env.KIDO_JIRA_PROJECT_KEY;
+    delete process.env.KIDO_JIRA_DEPLOYMENT_TYPE;
+    delete process.env.KIDO_JIRA_ALLOW_INSECURE_TLS;
+    console.log = (...args: unknown[]) => {
+      logged.push(args.map(String).join(" "));
+    };
+
+    await runInit(repo, { noLegacy: true });
+
+    const output = logged.join("\n");
+    assert.match(output, /KIDO_JIRA_DEPLOYMENT_TYPE/);
+    assert.match(output, /KIDO_JIRA_ALLOW_INSECURE_TLS/);
+  } finally {
+    console.log = originalLog;
+    process.env = originalEnv;
+    rmSync(repo, { recursive: true, force: true });
+  }
+});
+
+test("when Server/DC credentials (no email) are already resolvable via an existing file, init doesn't overwrite it or prompt", async () => {
+  const repo = makeEmptyRepo();
+  const originalEnv = { ...process.env };
+  try {
+    delete process.env.KIDO_JIRA_BASE_URL;
+    delete process.env.KIDO_JIRA_EMAIL;
+    delete process.env.KIDO_JIRA_API_TOKEN;
+    delete process.env.KIDO_JIRA_PROJECT_KEY;
+    delete process.env.KIDO_JIRA_DEPLOYMENT_TYPE;
+    delete process.env.KIDO_JIRA_ALLOW_INSECURE_TLS;
+
+    const existing = {
+      baseUrl: "https://jira.company.com",
+      apiToken: "pat-token",
+      projectKey: "EXIST",
+      deploymentType: "server",
+    };
+    const credsPath = join(repo, JIRA_CREDENTIALS_FILENAME);
+    writeFileSync(credsPath, JSON.stringify(existing));
+
+    await runInit(repo, { noLegacy: true });
+
+    const stillThere = JSON.parse(readFileSync(credsPath, "utf8"));
+    assert.deepEqual(stillThere, existing);
+  } finally {
+    process.env = originalEnv;
+    rmSync(repo, { recursive: true, force: true });
+  }
+});

@@ -13,6 +13,7 @@ import {
   writeJiraCredentialsFile,
   JIRA_ENV_VAR_NAMES,
   JIRA_CREDENTIALS_FILENAME,
+  type JiraDeploymentType,
 } from "../jira/credentials.js";
 
 export interface InitOptions {
@@ -99,11 +100,16 @@ async function handleJiraSetup(repoRoot: string, options: InitOptions, prompt: P
     return;
   }
 
-  const baseUrl = await prompt.askText("Jira base URL (e.g. https://yourteam.atlassian.net):");
-  const email = await prompt.askText("Jira account email:");
-  const apiToken = await prompt.askText("Jira API token:");
+  const isServer = await prompt.askYesNo("Is this a Server/Data Center instance?", false);
+  const deploymentType: JiraDeploymentType = isServer ? "server" : "cloud";
+
+  const baseUrl = await prompt.askText(
+    isServer ? "Jira base URL (e.g. https://jira.yourcompany.com):" : "Jira base URL (e.g. https://yourteam.atlassian.net):"
+  );
+  const email = isServer ? undefined : await prompt.askText("Jira account email:");
+  const apiToken = await prompt.askText(isServer ? "Jira Personal Access Token:" : "Jira API token:");
   const projectKey = await prompt.askText("Jira project key (e.g. PROJ):");
-  writeJiraCredentialsFile(repoRoot, { baseUrl, email, apiToken, projectKey });
+  writeJiraCredentialsFile(repoRoot, { baseUrl, email, apiToken, projectKey, deploymentType });
   console.log(`Wrote ${JIRA_CREDENTIALS_FILENAME} — Jira sync is ready to use.`);
 }
 
