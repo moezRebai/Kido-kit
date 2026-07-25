@@ -139,6 +139,58 @@ test("updateIssue also resolves Component/Priority", async () => {
   }
 });
 
+test("createIssue warns and omits Component when the components lookup itself fails (HTTP error, not just 'not found')", async () => {
+  const state: FakeServerState = { requests: [] };
+  let nextId = 1;
+  const server = createServer((req, res) => {
+    const url = new URL(req.url ?? "", "http://localhost");
+    state.requests.push({ method: req.method ?? "", path: url.pathname, body: undefined });
+
+    if (req.method === "GET" && url.pathname === "/rest/api/3/project/TEST/components") {
+      res.writeHead(500, { "Content-Type": "text/plain" });
+      res.end("internal error");
+      return;
+    }
+
+    if (req.method === "POST" && url.pathname === "/rest/api/3/issue") {
+      const key = `TEST-${nextId++}`;
+      res.writeHead(201, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ key }));
+      return;
+    }
+
+    res.writeHead(404);
+    res.end();
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const address = server.address();
+  const port = typeof address === "object" && address ? address.port : 0;
+  const url = `http://127.0.0.1:${port}`;
+
+  const originalWarn = console.warn;
+  const warnings: string[] = [];
+  console.warn = (...args: unknown[]) => {
+    warnings.push(args.map(String).join(" "));
+  };
+  try {
+    const client = new JiraClient(creds(url));
+    const result = await client.createIssue({
+      summary: "Add calculator",
+      description: "body",
+      issueType: "Story",
+      component: "payments-service",
+    });
+    assert.ok(result.key, "issue must still be created despite the components-lookup HTTP error");
+    assert.ok(
+      warnings.some((w) => w.includes("payments-service")),
+      "should warn about the component that couldn't be looked up"
+    );
+  } finally {
+    console.warn = originalWarn;
+    server.close();
+  }
+});
+
 test("the project's components/priorities lists are fetched once and cached across multiple issue creations", async () => {
   const { server, url, state } = await startFakeJira();
   try {

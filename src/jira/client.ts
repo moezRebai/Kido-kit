@@ -161,28 +161,40 @@ export class JiraClient {
   ): Promise<Record<string, unknown>> {
     const fields: Record<string, unknown> = {};
     if (input.component) {
-      const components = await this.getProjectComponents();
-      const matched = components.get(input.component.toLowerCase());
-      if (matched) fields.components = [{ name: matched }];
-      else console.warn(`Warning: "${label}": Component "${input.component}" not found on this project — skipping.`);
+      try {
+        const components = await this.getProjectComponents();
+        const matched = components.get(input.component.toLowerCase());
+        if (matched) fields.components = [{ name: matched }];
+        else console.warn(`Warning: "${label}": Component "${input.component}" not found on this project — skipping.`);
+      } catch (error) {
+        console.warn(`Warning: "${label}": couldn't look up Component "${input.component}" (${(error as Error).message}) — skipping.`);
+      }
     }
     if (input.priority) {
-      const priorities = await this.getPriorities();
-      const matched = priorities.get(input.priority.toLowerCase());
-      if (matched) fields.priority = { name: matched };
-      else console.warn(`Warning: "${label}": Priority "${input.priority}" not found on this Jira instance — skipping.`);
+      try {
+        const priorities = await this.getPriorities();
+        const matched = priorities.get(input.priority.toLowerCase());
+        if (matched) fields.priority = { name: matched };
+        else console.warn(`Warning: "${label}": Priority "${input.priority}" not found on this Jira instance — skipping.`);
+      } catch (error) {
+        console.warn(`Warning: "${label}": couldn't look up Priority "${input.priority}" (${(error as Error).message}) — skipping.`);
+      }
     }
     if (input.sprintName) {
-      const sprintFieldId = await this.findSprintFieldId();
-      if (!sprintFieldId) {
-        console.warn(`Warning: "${label}": no Sprint field found on this Jira instance — skipping Sprint "${input.sprintName}".`);
-      } else {
-        const sprintId = await this.resolveSprintId(input.sprintName);
-        if (sprintId === undefined) {
-          console.warn(`Warning: "${label}": Sprint "${input.sprintName}" not found on the project's board — skipping.`);
+      try {
+        const sprintFieldId = await this.findSprintFieldId();
+        if (!sprintFieldId) {
+          console.warn(`Warning: "${label}": no Sprint field found on this Jira instance — skipping Sprint "${input.sprintName}".`);
         } else {
-          fields[sprintFieldId] = sprintId;
+          const sprintId = await this.resolveSprintId(input.sprintName);
+          if (sprintId === undefined) {
+            console.warn(`Warning: "${label}": Sprint "${input.sprintName}" not found on the project's board — skipping.`);
+          } else {
+            fields[sprintFieldId] = sprintId;
+          }
         }
+      } catch (error) {
+        console.warn(`Warning: "${label}": couldn't look up Sprint "${input.sprintName}" (${(error as Error).message}) — skipping.`);
       }
     }
     return fields;
