@@ -34,7 +34,7 @@ cd your-microservice-repo
 kido init
 ```
 
-This scaffolds `kido/docs/` + `kido/changes/`, generates six Claude Code skills/commands under `.claude/`, and offers to seed `kido/docs/` from a legacy repo or set up Jira credentials.
+This scaffolds `kido/docs/` + `kido/changes/`, generates six Claude Code skills/commands under `.claude/`, and offers to seed `kido/docs/` from a legacy repo or set up Jira credentials (Cloud or Server/Data Center).
 
 Then, inside Claude Code:
 

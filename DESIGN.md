@@ -46,7 +46,7 @@ A visual walkthrough of all 9 pipeline stages (`kido init` → study → spec ×
 - CLI binary: `kido`, exposed via `package.json`'s `bin` field. `kido --version` reads a version baked in at build time (no runtime `package.json` lookup — unreliable across install layouts).
 - v1 targets **Claude Code only** for generated skills/commands, but the internal pipeline definition (`src/pipeline/definition.ts`) stays agent-agnostic (`{name, description, prompt body, required tools, args}` per stage) behind a renderer interface (`src/pipeline/renderers/`), so Gemini CLI/Kilo Code support can be added later as new renderers without touching the core.
 - Jira REST calls via built-in `fetch`, no SDK.
-- Jira credentials: user-scoped env vars primary, gitignored `.kido-credentials` file fallback. `kido init` offers to set this up on first run if neither is already configured — writes the file directly, or prints env-var instructions, per the user's choice. Token entry is plaintext.
+- Jira credentials: user-scoped env vars primary, gitignored `.kido-credentials` file fallback. `kido init` offers to set this up on first run if neither is already configured — writes the file directly, or prints env-var instructions, per the user's choice. Token entry is plaintext. Supports both Jira Cloud (Basic auth, email + API token, `/rest/api/3`, ADF-encoded descriptions) and Server/Data Center (Bearer auth, Personal Access Token, no email, `/rest/api/2`, wiki-markup-encoded descriptions) via `deploymentType`; a self-signed/internal-CA Server/DC instance is handled via the standard `NODE_EXTRA_CA_CERTS` env var (proper fix) or `allowInsecureTls` (last resort, disables TLS verification).
 
 ## Repo-side file layout (what `kido init` creates)
 
