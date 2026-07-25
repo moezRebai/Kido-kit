@@ -148,15 +148,20 @@ Sync continues and still creates/updates the Story with every other field.
 
 - `src/skills-content/tasks.ts`: no automated test (it's prompt content, like the
   rest of that file today).
-- `test/jira-sync.test.ts`: extended with cases covering — a task with a valid
-  Component/Criticality/Sprint all resolving correctly; a task with an
-  unresolvable Component (warns, Story still created without it); a task with no
-  Sprint field configured on the fake project at all (warns, skipped cleanly); a
-  re-sync (update) that changes a task's Criticality and confirms the update call
-  reflects it.
-- The existing fake Jira server in `jira-sync.test.ts` gains routes for `GET
-  /project/:key/components`, `GET /priority`, `GET /field`, `GET
-  /rest/agile/1.0/board`, and `GET /rest/agile/1.0/board/:id/sprint`.
+- `JiraClient`'s resolution logic (Component/Priority/Sprint matching, caching,
+  warn-and-skip on every unresolvable case — including "no Sprint field on this
+  instance at all" and "sprint name not found on the board") gets its own dedicated
+  test coverage at the client level (two new small fake-server test files, same
+  pattern as the Server/Data Center work), rather than re-exercising every one of
+  those edge cases again through the full `jira-sync.test.ts` command-layer path.
+- `test/jira-sync.test.ts`: extended with cases covering the *parsing/wiring* layer
+  specifically — a task with a valid Component/Criticality/Sprint all resolving
+  correctly end-to-end; a task with an unresolvable Component (warns, Story still
+  created without it); a re-sync (update) that changes a task's Criticality and
+  confirms the update call reflects it. The existing fake Jira server in
+  `jira-sync.test.ts` gains routes for `GET /project/:key/components`, `GET
+  /priority`, `GET /field`, `GET /rest/agile/1.0/board`, and `GET
+  /rest/agile/1.0/board/:id/sprint`.
 
 ## Open questions
 
