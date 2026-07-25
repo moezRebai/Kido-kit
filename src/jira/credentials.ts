@@ -6,7 +6,7 @@ export type JiraDeploymentType = "cloud" | "server";
 export interface JiraCredentials {
   baseUrl: string;
   /** Server/Data Center doesn't use this — Personal Access Token auth needs no email. */
-  email?: string;
+  email?: string | undefined;
   apiToken: string;
   projectKey: string;
   deploymentType: JiraDeploymentType;
