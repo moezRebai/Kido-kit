@@ -17,6 +17,7 @@ For each task, capture:
 - Likely-touched files/areas
 - Acceptance check — ideally a specific test that should pass once it's done (TDD convention)
 - Dependencies on other tasks (for \`/kido:apply\`'s sequential-vs-parallel dispatch)
+- Optionally, ask whether this task should carry a Jira Component, Criticality (Jira's Priority field), or Sprint — skip any the BA doesn't have an answer for, don't force it or invent a value
 
 ## Validate coverage
 
@@ -37,7 +38,12 @@ Write each task as its own \`##\` heading, in this exact shape, so \`kido jira s
 
 **Depends on:** none | Task <n>[, Task <m>...]
 **Test:** <the acceptance check / test that should pass>
+**Component:** <Jira component name, only if the BA gave one>
+**Criticality:** <Jira priority name, only if the BA gave one>
+**Sprint:** <Jira sprint name, only if the BA gave one>
 \`\`\`
+
+The last three lines are optional — omit any the BA didn't answer, never write a placeholder like "**Component:** (none)".
 
 ## Write and sync
 
