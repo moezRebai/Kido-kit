@@ -31,7 +31,7 @@ Same process, but incremental:
 
 ## Interaction with the rest of the pipeline
 
-\`kido/docs/\` is OWNED by this skill for existing-code projects. Every other stage (\`/kido:specify\`, \`/kido:tasks\`, \`/kido:apply\`, \`/kido:review\`) reads it for context but never writes to it directly. When \`/kido:archive\` asks "update /docs?" and the user says yes, it re-invokes *this same skill* in the scoped, incremental mode described above — one mechanism for every existing-project \`/docs\` write, not several that could drift apart.
+\`kido/docs/\` is OWNED by this skill for existing-code projects. Every other stage (\`/kido:specify\`, \`/kido:planify\`, \`/kido:implement\`, \`/kido:review\`) reads it for context but never writes to it directly. When \`/kido:archive\` asks "update /docs?" and the user says yes, it re-invokes *this same skill* in the scoped, incremental mode described above — one mechanism for every existing-project \`/docs\` write, not several that could drift apart.
 
 ## Guardrails
 

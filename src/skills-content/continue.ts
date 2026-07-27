@@ -17,12 +17,12 @@ const body = `Report where a change stands in the pipeline and what to do next. 
 
 ## Step 2 — Detect the stage
 
-Reuses the same forks \`/kido:specify\`, \`/kido:tasks\`, and \`/kido:apply\` already use (bug path, existing-Epic/single-Story path, full new-Epic feature path) — read the same signals those stages already produce rather than inventing new rules:
+Reuses the same forks \`/kido:specify\`, \`/kido:planify\`, and \`/kido:implement\` already use (bug path, existing-Epic/single-Story path, full new-Epic feature path) — read the same signals those stages already produce rather than inventing new rules:
 
 1. Run \`kido status --change <name>\` for artifact presence (\`functional-spec.md\`/\`design.md\`/\`tasks.md\`, or \`bug.md\`).
 2. Read \`.kido-meta.json\` in the change dir for \`type\` (\`feature\`/\`bug\`).
-3. Read frontmatter on \`functional-spec.md\` (feature) or \`bug.md\` (bug): \`jiraId\` (already pushed to Jira?), \`epicId\` (existing-Epic mode — files as a single Story, skips \`/kido:tasks\` entirely).
-4. If \`tasks.md\` exists, read it: count \`## Task N:\` headings total, and how many have a \`**Jira:**\` marker line (synced to Jira as a Story). Also look for a completion marker near each heading (Dev checks tasks off during \`/kido:apply\`, but the exact marker isn't standardized across this codebase) — if you find one applied consistently, count done vs. total; if you don't find a consistent marker, don't guess: report the Jira-sync count only and say per-task implementation status isn't determinable from \`tasks.md\` alone.
+3. Read frontmatter on \`functional-spec.md\` (feature) or \`bug.md\` (bug): \`jiraId\` (already pushed to Jira?), \`epicId\` (existing-Epic mode — files as a single Story, skips \`/kido:planify\` entirely).
+4. If \`tasks.md\` exists, read it: count \`## Task N:\` headings total, and how many have a \`**Jira:**\` marker line (synced to Jira as a Story). Also look for a completion marker near each heading (Dev checks tasks off during \`/kido:implement\`, but the exact marker isn't standardized across this codebase) — if you find one applied consistently, count done vs. total; if you don't find a consistent marker, don't guess: report the Jira-sync count only and say per-task implementation status isn't determinable from \`tasks.md\` alone.
 
 Map what you find to a next step:
 
@@ -30,11 +30,11 @@ Map what you find to a next step:
 |---|---|
 | No artifacts in the change dir at all | Nothing started yet — \`/kido:specify\` |
 | \`functional-spec.md\` only, no \`jiraId\`/\`epicId\` in frontmatter | At the checkpoint — push to Jira? continue into design now? → \`/kido:specify\` |
-| \`functional-spec.md\` + \`design.md\`, \`epicId\` set | Existing-Epic mode, single Story, no task breakdown → \`kido jira pull <key>\` then \`/kido:apply\` directly |
-| \`functional-spec.md\` + \`design.md\`, no \`epicId\` | \`/kido:tasks\` |
-| \`tasks.md\` exists, not all tasks show a completion marker (or that's unknown) | \`/kido:apply\` — report however many look done vs. total, if that's known |
+| \`functional-spec.md\` + \`design.md\`, \`epicId\` set | Existing-Epic mode, single Story, no task breakdown → \`kido jira pull <key>\` then \`/kido:implement\` directly |
+| \`functional-spec.md\` + \`design.md\`, no \`epicId\` | \`/kido:planify\` |
+| \`tasks.md\` exists, not all tasks show a completion marker (or that's unknown) | \`/kido:implement\` — report however many look done vs. total, if that's known |
 | \`tasks.md\` exists, every task shows a completion marker | Coarse zone — see below |
-| \`bug.md\` only | \`/kido:apply\` (bug lane: reproduce with a failing test, then fix) |
+| \`bug.md\` only | \`/kido:implement\` (bug lane: reproduce with a failing test, then fix) |
 | Found only under \`kido/changes/archive/<name>/\` | Already archived — nothing to do |
 
 ### Coarse zone

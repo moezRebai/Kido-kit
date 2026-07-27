@@ -26,7 +26,7 @@ const ROWS: BannerRow[] = [
   { robot: BLANK_ROBOT, text: "  - Generated skills/commands for your AI agent" },
   { robot: BLANK_ROBOT, text: "" },
   { robot: BLANK_ROBOT, text: "Quick start after setup:" },
-  { robot: BLANK_ROBOT, text: "  /kido:specify  ->  /kido:apply  ->  /kido:archive" },
+  { robot: BLANK_ROBOT, text: "  /kido:specify  ->  /kido:implement  ->  /kido:archive" },
   { robot: BLANK_ROBOT, text: "" },
   { robot: BLANK_ROBOT, text: "Setting up..." },
 ];

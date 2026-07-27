@@ -17,8 +17,8 @@ export interface PipelineStage {
 
 import { documentStage } from "../skills-content/document.js";
 import { specifyStage } from "../skills-content/specify.js";
-import { tasksStage } from "../skills-content/tasks.js";
-import { applyStage } from "../skills-content/apply.js";
+import { planifyStage } from "../skills-content/planify.js";
+import { implementStage } from "../skills-content/implement.js";
 import { reviewStage } from "../skills-content/review.js";
 import { archiveStage } from "../skills-content/archive.js";
 import { continueStage } from "../skills-content/continue.js";
@@ -26,8 +26,8 @@ import { continueStage } from "../skills-content/continue.js";
 export const stages: PipelineStage[] = [
   documentStage,
   specifyStage,
-  tasksStage,
-  applyStage,
+  planifyStage,
+  implementStage,
   reviewStage,
   archiveStage,
   continueStage,

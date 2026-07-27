@@ -40,7 +40,7 @@ No subagent dispatch — a bug fix is one unit of work by default:
 2. **Fix**: implement the change. Confirm the test now passes.
 3. **Perform the \`/kido:review\` check yourself** against \`bug.md\`'s description before suggesting anything else.
 
-(If a "bug" turns out to actually need multi-task breakdown once you're in it, that's the exception — escalate to \`/kido:tasks\` rather than forcing it through this single-pass flow.)
+(If a "bug" turns out to actually need multi-task breakdown once you're in it, that's the exception — escalate to \`/kido:planify\` rather than forcing it through this single-pass flow.)
 
 ## Guardrails
 
@@ -50,8 +50,8 @@ No subagent dispatch — a bug fix is one unit of work by default:
 - **Never present "commit / push / sync to Jira / next steps" to the user until review has actually been performed for every task** (or the bug fix). If you find yourself about to suggest committing without having done the review step, stop — go back and do the review first.
 `;
 
-export const applyStage: PipelineStage = {
-  id: "apply",
+export const implementStage: PipelineStage = {
+  id: "implement",
   description:
     "Dev's entry point — accepts a local change name or a Jira key (running kido jira pull to materialize it if needed), creates the branch, then implements a change's tasks (one subagent per task, TDD, dependency-ordered), a small feature filed as a single Story under an existing Epic (single TDD pass, no subagent dispatch), or a bug fix (reproduce with a failing test, then fix).",
   allowedTools: "Bash(kido:*), Read, Write, Edit, Bash, Agent",

@@ -112,7 +112,7 @@ async function materializeSmallFeature(
  * folder — the reverse of `kido jira sync`. Given a Story, first checks whether it's a
  * self-contained small-feature Story (see materializeSmallFeature) before falling back to
  * resolving its parent Epic, so Dev gets the full change context (functional-spec.md +
- * design.md + tasks.md), matching /kido:apply's existing context bundle. Returns the
+ * design.md + tasks.md), matching /kido:implement's existing context bundle. Returns the
  * resolved local change name. */
 export async function runJiraPull(repoRoot: string, key: string, asName?: string): Promise<string> {
   const client = new JiraClient(resolveJiraCredentials(repoRoot));

@@ -1,6 +1,6 @@
 import type { PipelineStage } from "../pipeline/definition.js";
 
-const body = `Break a feature's \`design.md\` into implementable tasks. BA-run — this happens before any Dev involvement, producing Jira Stories that Dev later picks up by key (see \`/kido:apply\`). **Feature path only** — bug fixes don't use this (see \`/kido:specify\`'s bug path and \`/kido:apply\`'s guardrails).
+const body = `Break a feature's \`design.md\` into implementable tasks. BA-run — this happens before any Dev involvement, producing Jira Stories that Dev later picks up by key (see \`/kido:implement\`). **Feature path only** — bug fixes don't use this (see \`/kido:specify\`'s bug path and \`/kido:implement\`'s guardrails).
 
 **Store selection:** resolve the repo root. Run \`kido status --change <name>\` to confirm \`functional-spec.md\` and \`design.md\` are both present before starting — if either is missing, redirect to \`/kido:specify\`.
 
@@ -10,13 +10,13 @@ Both \`functional-spec.md\` AND \`design.md\` (not design.md alone), plus \`kido
 
 ## Task breakdown philosophy: vertical slices, not layers
 
-Adapt the \`to-tickets\` approach: break the work into **vertical-slice, tracer-bullet tasks** — each one cuts through every layer it touches (schema, API, UI, tests together) and is independently completable and demonstrable on its own. Avoid horizontal layering (e.g. "task 1: all the schema changes, task 2: all the API changes") — that produces tasks that can't be verified or shipped independently, and defeats the point of subagent-per-task dispatch in \`/kido:apply\`.
+Adapt the \`to-tickets\` approach: break the work into **vertical-slice, tracer-bullet tasks** — each one cuts through every layer it touches (schema, API, UI, tests together) and is independently completable and demonstrable on its own. Avoid horizontal layering (e.g. "task 1: all the schema changes, task 2: all the API changes") — that produces tasks that can't be verified or shipped independently, and defeats the point of subagent-per-task dispatch in \`/kido:implement\`.
 
 For each task, capture:
 - Description (what it does, framed as a demonstrable slice)
 - Likely-touched files/areas
 - Acceptance check — ideally a specific test that should pass once it's done (TDD convention)
-- Dependencies on other tasks (for \`/kido:apply\`'s sequential-vs-parallel dispatch)
+- Dependencies on other tasks (for \`/kido:implement\`'s sequential-vs-parallel dispatch)
 - Optionally, ask whether this task should carry a Jira Component, Criticality (Jira's Priority field), or Sprint — skip any the BA doesn't have an answer for, don't force it or invent a value
 
 ## Validate coverage
@@ -55,7 +55,7 @@ Write \`tasks.md\` to \`kido/changes/<name>/\`.
 
 Either way: each task becomes a Jira **Story** directly (no Sub-task level; Epic → Story, two levels, not three). The **project** Stories/Epics land in is never something to ask about — it's fixed per repo via the configured Jira credentials (one project per microservice), not a per-change choice.
 
-That's the end of this command's job. Branch creation doesn't happen here — BA doesn't have push access, so it wouldn't be BA's branch to create. Dev creates it when they pick up a Story (see \`/kido:apply\`'s Jira-key entry point).
+That's the end of this command's job. Branch creation doesn't happen here — BA doesn't have push access, so it wouldn't be BA's branch to create. Dev creates it when they pick up a Story (see \`/kido:implement\`'s Jira-key entry point).
 
 ## Guardrails
 
@@ -63,10 +63,10 @@ That's the end of this command's job. Branch creation doesn't happen here — BA
 - Don't produce tasks that can only be verified once every other task is also done — that's a sign they're layered, not sliced.
 `;
 
-export const tasksStage: PipelineStage = {
-  id: "tasks",
+export const planifyStage: PipelineStage = {
+  id: "planify",
   description:
-    "BA-run: break a feature's functional-spec.md + design.md into vertical-slice, independently-demonstrable tasks and sync them as Jira Stories. Feature path only. Branch creation happens later, in /kido:apply.",
+    "BA-run: break a feature's functional-spec.md + design.md into vertical-slice, independently-demonstrable tasks and sync them as Jira Stories. Feature path only. Branch creation happens later, in /kido:implement.",
   allowedTools: "Bash(kido:*), Read, Write, AskUserQuestion",
   body,
 };

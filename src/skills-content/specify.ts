@@ -32,7 +32,7 @@ Run \`kido status --change <name>\` (creating the change with \`kido new-change 
 
 - **Neither exists yet** → functional-spec grilling first. Once it's written, stop at the "Checkpoint" below rather than sliding straight into design grilling — that's the BA/Dev handoff point, and it's explicit now, not silent.
 - **\`functional-spec.md\` exists, no \`design.md\`** → skip straight to design grilling. Someone already did the functional pass and either continued through the checkpoint or deliberately stopped there to bring Dev in — either way, pick up where they left off.
-- **Both exist** → nothing left for this command; point the user at \`/kido:tasks\`.
+- **Both exist** → nothing left for this command; point the user at \`/kido:planify\`.
 
 **Dev-only entry** (starting directly at \`design.md\` with no \`functional-spec.md\` at all) is only appropriate for genuinely non-business-facing internal/infra work — a dependency bump, an internal refactor with zero user-facing behavior change. It is NOT appropriate for feature work, page rewrites, or migrations, even when "the code already existed before" — anything with functional/business meaning should still get a (possibly lightweight) functional-spec.md first, because that's what makes the Jira Epic and keeps intent traceable. If you're unsure which bucket a request falls into, ask.
 
@@ -41,7 +41,7 @@ Run \`kido status --change <name>\` (creating the change with \`kido new-change 
 Adapt Superpowers' \`brainstorming\` mechanics:
 - One question at a time. Multiple-choice preferred over open-ended.
 - Read \`kido/docs/{project}-functional-docs.md\` first, so you don't propose something that contradicts an already-documented capability.
-- Focus questions on: business problem/why now, users affected, user stories/scenarios (Given/When/Then, since these need to map to Jira Stories later via \`/kido:tasks\`), acceptance criteria, explicit out-of-scope/non-goals.
+- Focus questions on: business problem/why now, users affected, user stories/scenarios (Given/When/Then, since these need to map to Jira Stories later via \`/kido:planify\`), acceptance criteria, explicit out-of-scope/non-goals.
 - **Before considered done:** explicitly enumerate boundary, failure, and concurrent-access conditions relevant to this change — even if the answer for some is "not applicable, because X." Don't let a challenging-question pass substitute for this being written down as its own reviewed section.
 - Once you understand it, present the draft \`functional-spec.md\` in sections, get approval section-by-section.
 - Self-review before finalizing: any placeholders/TBDs, internal contradictions, scope creep, or ambiguous requirements? Fix inline.
@@ -77,7 +77,7 @@ Same brainstorming mechanics as the functional pass, different inputs and conten
     - **They say yes, new Epic**: run \`kido jira sync --change <name>\` — it pushes \`functional-spec.md\` and \`design.md\` together into the same Epic's description (two labeled sections; Jira's hierarchy has no separate tier for design.md).
     - **They say yes, existing Epic**: write \`epicId: <key>\` into \`functional-spec.md\`'s frontmatter first (same as the checkpoint), then run \`kido jira sync --change <name>\` — syncs both files as a single Story under that Epic.
     - **They decline, or \`kido jira sync\` fails because credentials aren't configured**: that's fine, don't block — the files are already safely written locally. Tell them they can configure credentials later and just re-run \`kido jira sync --change <name>\` (safe/idempotent), or create the ticket manually now and come back to record its key the way described above.
-- **If this change is in existing-Epic mode** (\`functional-spec.md\`'s frontmatter has \`epicId\`): don't suggest \`/kido:tasks\` — there's no task breakdown for a single Story. Close out instead: "This is filed as a single Story under [the existing Epic] — Dev picks it up via \`kido jira pull <story-key>\` + \`/kido:apply\` directly, same single-pass implementation as the bug path." Otherwise (new-Epic mode, the default), nothing changes — \`/kido:tasks\` is the natural next step, same as always.
+- **If this change is in existing-Epic mode** (\`functional-spec.md\`'s frontmatter has \`epicId\`): don't suggest \`/kido:planify\` — there's no task breakdown for a single Story. Close out instead: "This is filed as a single Story under [the existing Epic] — Dev picks it up via \`kido jira pull <story-key>\` + \`/kido:implement\` directly, same single-pass implementation as the bug path." Otherwise (new-Epic mode, the default), nothing changes — \`/kido:planify\` is the natural next step, same as always.
 
 ## Bug path
 
@@ -88,7 +88,7 @@ Same grilling rigor as the functional-spec pass above, scoped to \`bug.md\`'s co
 - Present section-by-section, get approval, self-review before finalizing (same discipline as functional-spec.md).
 - Write \`bug.md\` to \`kido/changes/<name>/\` (create the change with \`kido new-change <name> --type bug\` if needed).
 - **Ask**: "Want me to push this to Jira as a Bug ticket? (Or if you already created it manually, give me the key and I'll link to it instead.)" Existing key given → write \`jiraId: <key>\` into \`bug.md\`'s frontmatter before ever syncing, same reasoning as the Epic case above. Yes, create it → run \`kido jira sync --change <name>\`. Declined or not configured → fine, files stay local, don't block.
-- Point the user at \`/kido:apply\`-adjacent flow next: for bugs, that means reproduce with a failing unit test, then fix — not the multi-task subagent dispatch \`/kido:apply\` uses for features (see that skill's guardrails).
+- Point the user at \`/kido:implement\`-adjacent flow next: for bugs, that means reproduce with a failing unit test, then fix — not the multi-task subagent dispatch \`/kido:implement\` uses for features (see that skill's guardrails).
 
 ## Guardrails
 
@@ -104,7 +104,7 @@ Same grilling rigor as the functional-spec pass above, scoped to \`bug.md\`'s co
 export const specifyStage: PipelineStage = {
   id: "specify",
   description:
-    "Start a change — forks bug vs feature. Feature path: functional-spec.md grilling, then an explicit checkpoint (push to Jira as a new Epic or under an existing one? continue into design now, or stop and wait for Dev?), then design.md grilling if continuing. Existing-Epic mode files as a single Story with no task breakdown — skips /kido:tasks entirely. Bug path: bug.md via the same grilling rigor. Boundary/failure/concurrent-access conditions must be enumerated for every artifact. For a greenfield repo with no kido/docs/, builds it inline first. The main entry point for new work.",
+    "Start a change — forks bug vs feature. Feature path: functional-spec.md grilling, then an explicit checkpoint (push to Jira as a new Epic or under an existing one? continue into design now, or stop and wait for Dev?), then design.md grilling if continuing. Existing-Epic mode files as a single Story with no task breakdown — skips /kido:planify entirely. Bug path: bug.md via the same grilling rigor. Boundary/failure/concurrent-access conditions must be enumerated for every artifact. For a greenfield repo with no kido/docs/, builds it inline first. The main entry point for new work.",
   allowedTools: "Bash(kido:*), Read, Write, Edit, Glob, AskUserQuestion",
   body,
 };

@@ -20,7 +20,7 @@ test("printWelcomeBanner prints the Kido welcome banner without throwing", () =>
   assert.match(output, /kido\/docs\/ \+ kido\/changes\/ scaffolding/);
   assert.match(output, /Generated skills\/commands for your AI agent/);
   assert.match(output, /Quick start after setup:/);
-  assert.match(output, /\/kido:specify\s+->\s+\/kido:apply\s+->\s+\/kido:archive/);
+  assert.match(output, /\/kido:specify\s+->\s+\/kido:implement\s+->\s+\/kido:archive/);
   assert.match(output, /Setting up\.\.\./);
 });
 

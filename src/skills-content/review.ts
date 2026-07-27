@@ -1,6 +1,6 @@
 import type { PipelineStage } from "../pipeline/definition.js";
 
-const body = `Review a diff — either automatically (per-task during \`/kido:apply\`) or on demand (manually invoked anytime against the current branch/changes, whether or not a Kido pipeline is even in flight).
+const body = `Review a diff — either automatically (per-task during \`/kido:implement\`) or on demand (manually invoked anytime against the current branch/changes, whether or not a Kido pipeline is even in flight).
 
 ## Composable pipeline: two stages, always both
 
@@ -11,7 +11,7 @@ If there's no associated change (pure on-demand review with nothing to trace aga
 
 ## When it runs
 
-- **Automatically**: after each task's subagent finishes in \`/kido:apply\`, before the next dependent task starts.
+- **Automatically**: after each task's subagent finishes in \`/kido:implement\`, before the next dependent task starts.
 - **On demand**: anytime, standalone — a Dev can just ask for a review of the current branch or working changes without any change being in progress.
 
 ## Guardrails

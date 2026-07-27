@@ -41,8 +41,8 @@ Then, inside Claude Code:
 ```
 /kido:document   # brownfield only — builds kido/docs/ from the existing codebase
 /kido:specify    # BA: functional-spec.md + design.md, in one session, pushed to a Jira Epic
-/kido:tasks      # BA: breaks design.md into vertical-slice tasks, synced as Jira Stories
-/kido:apply      # Dev: give it a Jira key — pulls the spec, creates the branch, implements task by task
+/kido:planify    # BA: breaks design.md into vertical-slice tasks, synced as Jira Stories
+/kido:implement  # Dev: give it a Jira key — pulls the spec, creates the branch, implements task by task
 /kido:review     # spec-traceability + standards, per task and on demand
 /kido:archive    # commit, refresh docs, sync anything changed back to Jira, close the change
 ```
