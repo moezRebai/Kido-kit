@@ -10,27 +10,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0710'/%3E%3Cline x1='16' y1='7' x2='16' y2='3' stroke='%23facc15' stroke-width='2' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='3' r='1.7' fill='%23facc15'/%3E%3Crect x='5' y='8' width='22' height='19' rx='6' stroke='%23facc15' stroke-width='2'/%3E%3Ccircle cx='12' cy='17.5' r='2.3' fill='%23facc15'/%3E%3Ccircle cx='20' cy='17.5' r='2.3' fill='%23facc15'/%3E%3Crect x='11' y='22.5' width='10' height='2.2' rx='1.1' fill='%23facc15' opacity='0.85'/%3E%3C/svg%3E" />
 <style>
   :root {
-    /* Light theme (default) — Natixis-inspired purple */
-    --paper: #faf9fc;
-    --paper-raised: #f0edf6;
-    --ink: #1c1424;
-    --ink-soft: #5b5468;
-    --rule: #ddd6e8;
-    --brass: #8b4fb0;
-    --brass-ink: #5c2483;
-    --ledger: #4a4570;
-    --ledger-soft: #3a3560;
-    --term-bg: #f4f2f8;
-    --term-ink: #241a30;
-    --term-dim: #655b78;
-    --term-accent: #6b2f96;
-    --term-green: #1f7a4d;
-    --yellow: #facc15;
-    --shadow: 0 1px 2px rgba(28, 20, 36, 0.05), 0 8px 20px -12px rgba(28, 20, 36, 0.14);
-    --logo-glow: drop-shadow(0 1px 3px rgba(28, 20, 36, 0.28));
-  }
-
-  :root[data-theme="dark"] {
+    /* Dark theme (default) — Natixis-inspired purple */
     --paper: #0b0710;
     --paper-raised: #17101f;
     --ink: #ede8f7;
@@ -48,6 +28,27 @@
     --yellow: #facc15;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 32px -16px rgba(88, 28, 168, 0.45);
     --logo-glow: drop-shadow(0 0 5px color-mix(in srgb, var(--yellow) 65%, transparent));
+  }
+
+  :root[data-theme="light"] {
+    /* Light theme (opt-in override) */
+    --paper: #faf9fc;
+    --paper-raised: #f0edf6;
+    --ink: #1c1424;
+    --ink-soft: #5b5468;
+    --rule: #ddd6e8;
+    --brass: #8b4fb0;
+    --brass-ink: #5c2483;
+    --ledger: #4a4570;
+    --ledger-soft: #3a3560;
+    --term-bg: #f4f2f8;
+    --term-ink: #241a30;
+    --term-dim: #655b78;
+    --term-accent: #6b2f96;
+    --term-green: #1f7a4d;
+    --yellow: #facc15;
+    --shadow: 0 1px 2px rgba(28, 20, 36, 0.05), 0 8px 20px -12px rgba(28, 20, 36, 0.14);
+    --logo-glow: drop-shadow(0 1px 3px rgba(28, 20, 36, 0.28));
   }
 
   * { box-sizing: border-box; }
@@ -589,7 +590,19 @@
     backdrop-filter: blur(6px);
     border-bottom: 1px solid var(--rule);
     padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
   }
+
+  .runbook-nav-utility {
+    flex: none;
+    font-size: 0.72rem;
+    color: var(--ink-soft);
+    white-space: nowrap;
+  }
+  .runbook-nav-utility code { color: var(--ink-soft); }
 
   @media (max-width: 720px) {
     .app-shell { flex-direction: column; }
@@ -815,6 +828,30 @@
   .flow-node--terminal.flow-node--role-dev .t, .flow-node--terminal.flow-node--role-dev .d { color: #fff; }
   .flow-node--terminal.flow-node--role-ba { background: var(--ledger-soft); border-color: var(--ledger-soft); }
   .flow-node--terminal.flow-node--role-ba .t, .flow-node--terminal.flow-node--role-ba .d { color: #fff; }
+
+  .flow-node--utility { border-style: dotted; }
+  .flow-node--utility .t::before { content: "↺ "; }
+
+  /* ---------- Flow utility toolbar (continue/ask — available at any stage) ---------- */
+
+  .flow-utility {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 24px;
+    padding: 10px 16px;
+    border: 1px dotted var(--rule);
+    border-radius: 10px;
+    background: var(--paper-raised);
+  }
+  .flow-utility-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin-right: 2px;
+  }
 
   /* ---------- Flow wizard controls ---------- */
 
@@ -1062,10 +1099,12 @@
             <tr><th>Command</th><th>Behavior</th></tr>
             <tr><td><code>/kido:document</code></td><td>Brownfield-only 5-phase discovery; also refreshes existing docs any time.</td></tr>
             <tr><td><code>/kido:specify</code></td><td>BA's entry point — bug/feature fork, functional-spec.md, a checkpoint (push? new or existing Epic?), then design.md.</td></tr>
-            <tr><td><code>/kido:tasks</code></td><td>BA-run, vertical-slice task breakdown — new-Epic mode only.</td></tr>
-            <tr><td><code>/kido:apply</code></td><td>Dev's entry point — pulls from Jira if needed, creates the branch, implements with TDD.</td></tr>
+            <tr><td><code>/kido:planify</code></td><td>BA-run, vertical-slice task breakdown — new-Epic mode only.</td></tr>
+            <tr><td><code>/kido:implement</code></td><td>Dev's entry point — pulls from Jira if needed, creates the branch, implements with TDD.</td></tr>
             <tr><td><code>/kido:review</code></td><td>Spec-traceability + standards — runs per-task and on demand.</td></tr>
             <tr><td><code>/kido:archive</code></td><td>Commit, optionally refresh docs, archive the change, sync Jira — always last.</td></tr>
+            <tr><td><code>/kido:continue</code></td><td>Read-only — reports where an in-flight change stands and what to run next.</td></tr>
+            <tr><td><code>/kido:ask</code></td><td>Read-only — explains what a command does, or which one fits the current situation.</td></tr>
           </table>
         </div>
 
@@ -1094,12 +1133,13 @@
           <a href="#s0" title="kido init">0</a>
           <a href="#s1" title="/kido:document">1</a>
           <a href="#s2" title="/kido:specify">2</a>
-          <a href="#s3" title="/kido:tasks">3</a>
+          <a href="#s3" title="/kido:planify">3</a>
           <a href="#s4" title="kido jira pull + branch">4</a>
-          <a href="#s5" title="/kido:apply">5</a>
+          <a href="#s5" title="/kido:implement">5</a>
           <a href="#s6" title="/kido:review">6</a>
           <a href="#s7" title="/kido:archive">7</a>
         </nav>
+        <span class="runbook-nav-utility">always available: <code>/kido:continue</code> · <code>/kido:ask</code></span>
       </div>
 
 <div class="intro">
@@ -1136,7 +1176,7 @@
       <span class="stage-tag">CLI · one-time per repo · shared by all three paths</span>
     </div>
     <h2>Scaffold the repo</h2>
-    <p class="lede">Creates <code>kido/docs/</code> and <code>kido/changes/</code>, generates the six skills and six commands into <code>.claude/</code>, then offers two one-time setup questions — only if they're not already answered.</p>
+    <p class="lede">Creates <code>kido/docs/</code> and <code>kido/changes/</code>, generates the eight skills and eight commands into <code>.claude/</code>, then offers two one-time setup questions — only if they're not already answered.</p>
     <div class="asks">
       <span class="ask">Legacy docs to seed from?</span>
       <span class="ask">Configure Jira credentials now?</span>
@@ -1147,7 +1187,7 @@
       <div class="term-chrome"><span></span><span></span><span></span><span class="path">pricing-service</span></div>
       <pre><span class="prompt">$</span> kido init
 Scaffolded kido/ in D:\pricing-service
-Generated .claude/skills/mr-* and .claude/commands/kido/* for: document, specify, tasks, apply, review, archive
+Generated .claude/skills/mr-* and .claude/commands/kido/* for: document, specify, planify, implement, review, archive, continue, ask
 <span class="dim">Do you have legacy docs / a legacy repo to seed kido/docs/ from?</span> [y/N] n
 No legacy docs to seed from — run /kido:specify next, it'll build kido/docs/ and your first spec together.
 <span class="dim">No Jira credentials configured yet. Set them up now?</span> [y/N] y
@@ -1172,17 +1212,21 @@ Wrote .kido-credentials — Jira sync is ready to use.</pre>
     ├── skills/
     │   ├── <span class="file">mr-document/SKILL.md</span>
     │   ├── <span class="file">mr-specify/SKILL.md</span>
-    │   ├── <span class="file">mr-tasks/SKILL.md</span>
-    │   ├── <span class="file">mr-apply/SKILL.md</span>
+    │   ├── <span class="file">mr-planify/SKILL.md</span>
+    │   ├── <span class="file">mr-implement/SKILL.md</span>
     │   ├── <span class="file">mr-review/SKILL.md</span>
-    │   └── <span class="file">mr-archive/SKILL.md</span>
+    │   ├── <span class="file">mr-archive/SKILL.md</span>
+    │   ├── <span class="file">mr-continue/SKILL.md</span>
+    │   └── <span class="file">mr-ask/SKILL.md</span>
     └── commands/kido/
-        ├── <span class="file">document.md</span> <span class="dim">→ /kido:document</span>
-        ├── <span class="file">specify.md</span>  <span class="dim">→ /kido:specify</span>
-        ├── <span class="file">tasks.md</span>    <span class="dim">→ /kido:tasks</span>
-        ├── <span class="file">apply.md</span>    <span class="dim">→ /kido:apply</span>
-        ├── <span class="file">review.md</span>   <span class="dim">→ /kido:review</span>
-        └── <span class="file">archive.md</span>  <span class="dim">→ /kido:archive</span></pre>
+        ├── <span class="file">document.md</span>  <span class="dim">→ /kido:document</span>
+        ├── <span class="file">specify.md</span>   <span class="dim">→ /kido:specify</span>
+        ├── <span class="file">planify.md</span>   <span class="dim">→ /kido:planify</span>
+        ├── <span class="file">implement.md</span> <span class="dim">→ /kido:implement</span>
+        ├── <span class="file">review.md</span>    <span class="dim">→ /kido:review</span>
+        ├── <span class="file">archive.md</span>   <span class="dim">→ /kido:archive</span>
+        ├── <span class="file">continue.md</span>  <span class="dim">→ /kido:continue</span>
+        └── <span class="file">ask.md</span>       <span class="dim">→ /kido:ask</span></pre>
     </div>
   </section>
 
@@ -1287,7 +1331,7 @@ Traders need to price interest-rate swaps against the live curve, not just vanil
     <div class="fork-grid">
       <div class="fork-card">
         <div class="fork-card-head"><span class="fork-tag">New Epic</span><span class="fork-tag-note">default</span></div>
-        <p>The normal case — <code>functional-spec.md</code> + <code>design.md</code> become their own Epic. Continues to <a href="#s3">Stage 3 — /kido:tasks</a> for a full task breakdown.</p>
+        <p>The normal case — <code>functional-spec.md</code> + <code>design.md</code> become their own Epic. Continues to <a href="#s3">Stage 3 — /kido:planify</a> for a full task breakdown.</p>
         <div class="filecard">
           <div class="filecard-head"><span>kido/changes/add-swap-pricing/design.md</span></div>
           <pre><span class="h"># Swap Pricing — Technical Design</span>
@@ -1327,7 +1371,7 @@ Updated Epic PROJ-501
       </div>
       <div class="fork-card">
         <div class="fork-card-head"><span class="fork-tag">Existing Epic</span><span class="fork-tag-note">one unit of work only</span></div>
-        <p>A small, self-contained feature that belongs under an Epic BA already has — here, <b>Spreading</b>, a bigger initiative collecting several small deliverables. No new Epic — this becomes a single <b>Story</b> instead, and <b>skips <code>/kido:tasks</code> entirely</b>. Only safe when the whole thing really is one unit of work; a feature under an existing Epic that turns out to need multiple tasks isn't supported yet — use "new Epic" if unsure.</p>
+        <p>A small, self-contained feature that belongs under an Epic BA already has — here, <b>Spreading</b>, a bigger initiative collecting several small deliverables. No new Epic — this becomes a single <b>Story</b> instead, and <b>skips <code>/kido:planify</code> entirely</b>. Only safe when the whole thing really is one unit of work; a feature under an existing Epic that turns out to need multiple tasks isn't supported yet — use "new Epic" if unsure.</p>
         <div class="filecard">
           <div class="filecard-head"><span>kido/changes/expose-currencies-endpoint/functional-spec.md</span><span class="tag">epicId: SPREAD-9</span></div>
           <pre><span class="h"># Expose Currencies Endpoint</span>
@@ -1358,7 +1402,7 @@ Updated Story SPREAD-118</pre>
   <section class="stage" id="s3">
     <div class="stage-badge">3</div>
     <div class="stage-kicker">
-      <span class="stage-command">/kido:tasks</span>
+      <span class="stage-command">/kido:planify</span>
       <span class="stage-tag">BA-run · vertical slices · Jira Stories</span>
     </div>
     <p class="path-note">Only the <b>new Epic</b> path reaches this stage — bug fixes and existing-Epic features skip straight to Stage 4.</p>
@@ -1402,7 +1446,7 @@ Created Story <span class="ok">PROJ-503</span>: Wire calculator into pricing API
       <span class="stage-tag">Dev's entry · shared by all three paths</span>
     </div>
     <h2>Dev picks it up — by Jira key, not git</h2>
-    <p class="lede">BA's work never reached this machine via git — Jira was the transport, for any of the three paths. Dev gives <code>/kido:apply</code> a Jira key; since nothing's local yet, it runs <code>kido jira pull</code> first. Only then, before any implementation starts, does it ask to create the branch.</p>
+    <p class="lede">BA's work never reached this machine via git — Jira was the transport, for any of the three paths. Dev gives <code>/kido:implement</code> a Jira key; since nothing's local yet, it runs <code>kido jira pull</code> first. Only then, before any implementation starts, does it ask to create the branch.</p>
     <div class="asks"><span class="ask">Ready to create the branch?</span></div>
 
     <div class="output-label">Console</div>
@@ -1427,7 +1471,7 @@ Switched to a new branch 'feature/PROJ-502-swap-pricing'</pre>
   <section class="stage" id="s5">
     <div class="stage-badge">5</div>
     <div class="stage-kicker">
-      <span class="stage-command">/kido:apply</span>
+      <span class="stage-command">/kido:implement</span>
       <span class="stage-tag">dispatch depends on what was pulled</span>
     </div>
     <h2>Implement — one of two shapes</h2>
@@ -1438,7 +1482,7 @@ Switched to a new branch 'feature/PROJ-502-swap-pricing'</pre>
         <div class="fork-card-head"><span class="fork-tag">tasks.md exists</span><span class="fork-tag-note">new Epic path</span></div>
         <p>One subagent per task, scoped to spec + design + that one task + <code>kido/docs/</code>. Task 2 waits for Task 1 since it depends on it.</p>
         <div class="term">
-          <div class="term-chrome"><span></span><span></span><span></span><span class="path">apply</span></div>
+          <div class="term-chrome"><span></span><span></span><span></span><span class="path">implement</span></div>
           <pre><span class="dim">Task 1 — Add curve-based pricing calculator</span>
   writing SwapPricerTests.cs (failing) ... <span class="ok">red</span>
   implementing SwapPricer.cs ... <span class="ok">green</span>
@@ -1455,7 +1499,7 @@ Switched to a new branch 'feature/PROJ-502-swap-pricing'</pre>
         <div class="fork-card-head"><span class="fork-tag">No tasks.md</span><span class="fork-tag-note">bug or small feature</span></div>
         <p>No subagent dispatch — one unit of work. Failing test first, confirmed red, then implement to green.</p>
         <div class="term">
-          <div class="term-chrome"><span></span><span></span><span></span><span class="path">apply</span></div>
+          <div class="term-chrome"><span></span><span></span><span></span><span class="path">implement</span></div>
           <pre><span class="dim">Expose Currencies Endpoint</span>
   writing CurrenciesEndpointTests.cs (failing) ... <span class="ok">red</span>
   implementing GET /currencies ... <span class="ok">green</span>
@@ -1538,6 +1582,12 @@ Updated PROJ-501, PROJ-502, PROJ-503 → <span class="ok">Done</span></pre>
       <div class="flow-wrap">
         <p class="eyebrow">Flow diagram</p>
         <h1 style="font-size:2rem; line-height:1.2; margin-bottom:22px;">The whole pipeline, at a glance</h1>
+
+        <div class="flow-utility" id="flow-utility">
+          <span class="flow-utility-label">Available at any stage, read-only:</span>
+          <button type="button" class="flow-btn" data-util="continue">/kido:continue</button>
+          <button type="button" class="flow-btn" data-util="ask">/kido:ask</button>
+        </div>
 
         <div class="flow-layout">
           <aside class="flow-actors" id="flow-actors">
@@ -1670,7 +1720,7 @@ Updated PROJ-501, PROJ-502, PROJ-503 → <span class="ok">Done</span></pre>
         next: "tasks"
       },
       "tasks": {
-        role: "BA", type: "action", t: "/kido:tasks",
+        role: "BA", type: "action", t: "/kido:planify",
         d: "BA-run · vertical-slice breakdown (new Epic mode only)",
         next: "jira-stories"
       },
@@ -1681,7 +1731,7 @@ Updated PROJ-501, PROJ-502, PROJ-503 → <span class="ok">Done</span></pre>
       },
       "jira-story-existing": {
         role: "BA", type: "jira", t: "Jira Story",
-        d: "One Story under the existing Epic — skips /kido:tasks entirely",
+        d: "One Story under the existing Epic — skips /kido:planify entirely",
         next: "jira-pull"
       },
       "jira-pull": {
@@ -1695,7 +1745,7 @@ Updated PROJ-501, PROJ-502, PROJ-503 → <span class="ok">Done</span></pre>
         next: "apply"
       },
       "apply": {
-        role: "DEV", type: "action", t: "/kido:apply",
+        role: "DEV", type: "action", t: "/kido:implement",
         d: "1 subagent per task (feature) or single TDD pass (bug/small) · failing test first",
         next: "review"
       },
@@ -1721,6 +1771,14 @@ Updated PROJ-501, PROJ-502, PROJ-503 → <span class="ok">Done</span></pre>
       "archive": {
         role: "DEV", type: "terminal", t: "/kido:archive",
         d: "archive + update Jira — always last"
+      },
+      "continue": {
+        role: "BA · DEV", type: "utility", utility: true, t: "/kido:continue",
+        d: "Read-only — reports where an in-flight change stands and what to run next"
+      },
+      "ask": {
+        role: "BA · DEV", type: "utility", utility: true, t: "/kido:ask",
+        d: "Read-only — explains what a command does, or which one fits right now"
       }
     };
 
@@ -1738,6 +1796,7 @@ Updated PROJ-501, PROJ-502, PROJ-503 → <span class="ok">Done</span></pre>
       if (type === "jira") return " flow-node--jira";
       if (type === "docs") return " flow-node--docs";
       if (type === "terminal") return " flow-node--terminal";
+      if (type === "utility") return " flow-node--utility";
       return "";
     }
 
@@ -1871,6 +1930,8 @@ Updated PROJ-501, PROJ-502, PROJ-503 → <span class="ok">Done</span></pre>
         }).join("") + "</div>";
       } else if (s.next) {
         html += '<div class="flow-controls"><button type="button" class="flow-btn flow-btn--continue" data-next="' + s.next + '">Continue →</button></div>';
+      } else if (s.utility) {
+        html += '<p class="flow-end">Doesn’t change files or advance the pipeline — use ← Back to resume where you left off.</p>';
       } else {
         html += '<p class="flow-end">End of path — restart to explore another branch.</p>';
       }
@@ -1907,6 +1968,19 @@ Updated PROJ-501, PROJ-502, PROJ-503 → <span class="ok">Done</span></pre>
         renderStage();
       }
     });
+
+    var utilityEl = document.getElementById("flow-utility");
+    if (utilityEl) {
+      utilityEl.addEventListener("click", function (e) {
+        var btn = e.target.closest("button");
+        if (!btn) return;
+        var id = btn.getAttribute("data-util");
+        if (id && steps[id]) {
+          trail.push(id);
+          renderStage();
+        }
+      });
+    }
 
     if (actorsEl) {
       actorsEl.addEventListener("click", function (e) {
