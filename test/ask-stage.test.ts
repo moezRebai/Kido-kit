@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { buildAskStage } from "../src/skills-content/ask.js";
+import { stages } from "../src/pipeline/definition.js";
 import type { PipelineStage } from "../src/pipeline/definition.js";
 
 function fakeStage(id: string, description: string): PipelineStage {
@@ -30,4 +31,11 @@ test("buildAskStage's body does not include itself", () => {
   const otherStages = [fakeStage("document", "Builds docs.")];
   const stage = buildAskStage(otherStages);
   assert.ok(!stage.body.includes("/kido:ask "), "body should not self-reference in the generated table");
+});
+
+test("every real non-ask stage appears in the shipped ask table", () => {
+  const ask = stages.find((s) => s.id === "ask")!;
+  const others = stages.filter((s) => s.id !== "ask");
+  assert.equal(others.length, stages.length - 1);
+  for (const s of others) assert.ok(ask.body.includes(s.description), `${s.id} missing from ask table`);
 });

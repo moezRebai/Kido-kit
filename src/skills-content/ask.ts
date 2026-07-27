@@ -2,7 +2,7 @@ import type { PipelineStage } from "../pipeline/definition.js";
 
 export function buildAskStage(otherStages: PipelineStage[]): PipelineStage {
   const commandRows = otherStages
-    .map((stage) => `| /kido:${stage.id} | ${stage.description} |`)
+    .map((stage) => `| /kido:${stage.id} | ${stage.description.replaceAll("|", "\\|")} |`)
     .join("\n");
 
   const body = `You don't need to remember every /kido: command — ask.
