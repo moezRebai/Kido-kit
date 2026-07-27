@@ -34,7 +34,7 @@ cd your-microservice-repo
 kido init
 ```
 
-This scaffolds `kido/docs/` + `kido/changes/`, generates six Claude Code skills/commands under `.claude/`, and offers to seed `kido/docs/` from a legacy repo or set up Jira credentials (Cloud or Server/Data Center).
+This scaffolds `kido/docs/` + `kido/changes/`, generates eight Claude Code skills/commands under `.claude/`, and offers to seed `kido/docs/` from a legacy repo or set up Jira credentials (Cloud or Server/Data Center).
 
 Then, inside Claude Code:
 
@@ -45,6 +45,8 @@ Then, inside Claude Code:
 /kido:implement  # Dev: give it a Jira key — pulls the spec, creates the branch, implements task by task
 /kido:review     # spec-traceability + standards, per task and on demand
 /kido:archive    # commit, refresh docs, sync anything changed back to Jira, close the change
+/kido:continue   # read-only: reports where an in-flight change stands and what to run next
+/kido:ask        # what does a command do, or which one fits my situation right now
 ```
 
 See [`kido-kit.html`](./kido-kit.html) for the full 8-stage walkthrough with actual console output and file contents at every step.
