@@ -1,6 +1,7 @@
 import { parseArgs, requireFlag, optionalFlag } from "./lib/args.js";
 import { findRepoRoot } from "./lib/kido-paths.js";
 import { runInit } from "./commands/init.js";
+import { parseAgentsFlag } from "./commands/init-agents.js";
 import { runNewChange } from "./commands/new-change.js";
 import { runStatus } from "./commands/status.js";
 import { runValidate } from "./commands/validate.js";
@@ -14,7 +15,7 @@ const HELP = `kido — spec-driven BA/Dev collaboration CLI
 
 Usage:
   kido --version                            Print the installed version
-  kido init [--from-legacy <path> | --no-legacy] [--skip-jira-setup]  Scaffold kido/ and generate Claude Code skills/commands
+  kido init [--from-legacy <path> | --no-legacy] [--skip-jira-setup] [--agents <ids>]  Scaffold kido/ and generate agent skills/commands (ids: claude, gemini, kilo, or "all"; comma-separated; asks interactively if omitted and a TTY is present)
   kido new-change <name> [--type feature|bug]  Create a new change (default: feature)
   kido status --change <name>               Show artifact completion for a change
   kido validate --change <name>             Check a change is ready to archive
@@ -40,6 +41,7 @@ async function main(): Promise<void> {
         ...(typeof flags["from-legacy"] === "string" ? { fromLegacy: flags["from-legacy"] } : {}),
         noLegacy: Boolean(flags["no-legacy"]),
         skipJiraSetup: Boolean(flags["skip-jira-setup"]),
+        ...(typeof flags["agents"] === "string" ? { agents: parseAgentsFlag(flags["agents"]) } : {}),
       });
       break;
 
