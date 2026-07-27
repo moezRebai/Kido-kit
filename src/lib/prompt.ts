@@ -45,7 +45,14 @@ export class PromptSession {
     // react to the same keypress and corrupt the terminal. Closing it here
     // detaches that listener; a fresh Interface is created in `finally` so
     // askYesNo/askText keep working on any later call.
+    //
+    // rl.close() leaves the underlying stream paused (confirmed via
+    // process.stdin.isPaused() on Windows/Node 24) — merely attaching a
+    // 'keypress' listener afterward does not put it back into flowing mode,
+    // so without this explicit resume() no keypress ever arrives and the
+    // checkbox appears to hang/exit immediately.
     this.rl.close();
+    stdin.resume();
 
     let state: CheckboxState<T> = { cursorIndex: 0, selected: new Set(defaultSelected) };
     const render = () => renderCheckboxList(question, choices, state.selected, state.cursorIndex);
