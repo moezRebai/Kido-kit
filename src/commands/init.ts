@@ -1,5 +1,4 @@
 import { existsSync } from "node:fs";
-import { join } from "node:path";
 import { stdin } from "node:process";
 import { ensureDir, isEmptyDir } from "../lib/fs-utils.js";
 import { resolveKidoPaths } from "../lib/kido-paths.js";
@@ -7,7 +6,8 @@ import { PromptSession } from "../lib/prompt.js";
 import { copyKidoDocs } from "../lib/docs-copy.js";
 import { printWelcomeBanner } from "../lib/banner.js";
 import { stages } from "../pipeline/definition.js";
-import { renderAllClaudeCodeStages } from "../pipeline/renderers/claude-code.js";
+import { AGENT_RENDERERS } from "../pipeline/renderers/registry.js";
+import type { AgentId } from "../pipeline/renderers/types.js";
 import {
   hasResolvableJiraCredentials,
   writeJiraCredentialsFile,
@@ -23,6 +23,8 @@ export interface InitOptions {
   noLegacy?: boolean;
   /** Non-interactive: skip the Jira credentials question entirely. */
   skipJiraSetup?: boolean;
+  /** Non-interactive: which agents to generate skills/commands for. Already validated (see parseAgentsFlag). */
+  agents?: AgentId[];
 }
 
 function seedFromLegacy(repoRoot: string, legacyPath: string): void {
@@ -113,6 +115,22 @@ async function handleJiraSetup(repoRoot: string, options: InitOptions, prompt: P
   console.log(`Wrote ${JIRA_CREDENTIALS_FILENAME} — Jira sync is ready to use.`);
 }
 
+async function resolveSelectedAgents(
+  explicit: AgentId[] | undefined,
+  prompt: PromptSession | undefined
+): Promise<AgentId[]> {
+  if (explicit && explicit.length > 0) return explicit;
+
+  if (!prompt) return ["claude"];
+
+  const choices = AGENT_RENDERERS.map((r) => ({ id: r.id, label: r.label }));
+  return prompt.askCheckbox(
+    "Which agent(s) do you want to generate skills/commands for? (space to toggle, enter to confirm)",
+    choices,
+    ["claude"]
+  );
+}
+
 export async function runInit(repoRoot: string, options: InitOptions = {}): Promise<void> {
   printWelcomeBanner();
 
@@ -122,18 +140,21 @@ export async function runInit(repoRoot: string, options: InitOptions = {}): Prom
   ensureDir(paths.changesDir);
   ensureDir(paths.archiveDir);
 
-  const claudeDir = join(repoRoot, ".claude");
-  renderAllClaudeCodeStages(stages, claudeDir);
-
-  console.log(`Scaffolded kido/ in ${repoRoot}`);
-  console.log(`Generated .claude/skills/mr-* and .claude/commands/kido/* for: ${stages.map((s) => s.id).join(", ")}`);
-
   // Interactive prompts only when stdin is a real terminal — piped/non-TTY
   // input can race ahead of sequential readline question() calls (a known
   // Node gotcha), so scripted/automated callers should use the non-interactive
-  // flags (--from-legacy/--no-legacy/--skip-jira-setup) instead.
+  // flags (--from-legacy/--no-legacy/--skip-jira-setup/--agents) instead.
   const prompt = stdin.isTTY ? new PromptSession() : undefined;
   try {
+    const selectedAgentIds = await resolveSelectedAgents(options.agents, prompt);
+    for (const agentId of selectedAgentIds) {
+      const renderer = AGENT_RENDERERS.find((r) => r.id === agentId)!;
+      renderer.render(stages, repoRoot);
+    }
+    const selectedLabels = selectedAgentIds.map((id) => AGENT_RENDERERS.find((r) => r.id === id)!.label).join(", ");
+    console.log(`Scaffolded kido/ in ${repoRoot}`);
+    console.log(`Generated skills/commands for ${selectedLabels} (stages: ${stages.map((s) => s.id).join(", ")})`);
+
     await handleDocsSetup(repoRoot, options, prompt);
     await handleJiraSetup(repoRoot, options, prompt);
   } finally {

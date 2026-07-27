@@ -100,3 +100,42 @@ test("re-running init on a repo that already has docs/ content is a no-op for th
     rmSync(repo, { recursive: true, force: true });
   }
 });
+
+test("--agents claude,gemini generates both trees and nothing under .kilo", async () => {
+  const repo = makeEmptyRepo();
+  try {
+    await runInit(repo, { noLegacy: true, agents: ["claude", "gemini"] });
+
+    assert.equal(existsSync(join(repo, ".claude", "skills", "mr-document", "SKILL.md")), true);
+    assert.equal(existsSync(join(repo, ".gemini", "skills", "mr-document", "SKILL.md")), true);
+    assert.equal(existsSync(join(repo, ".kilo")), false);
+  } finally {
+    rmSync(repo, { recursive: true, force: true });
+  }
+});
+
+test("--agents kilo generates only the .kilo commands tree", async () => {
+  const repo = makeEmptyRepo();
+  try {
+    await runInit(repo, { noLegacy: true, agents: ["kilo"] });
+
+    assert.equal(existsSync(join(repo, ".kilo", "commands", "kido-document.md")), true);
+    assert.equal(existsSync(join(repo, ".claude")), false);
+    assert.equal(existsSync(join(repo, ".gemini")), false);
+  } finally {
+    rmSync(repo, { recursive: true, force: true });
+  }
+});
+
+test("no --agents and no TTY still defaults to Claude Code only (backward compatible)", async () => {
+  const repo = makeEmptyRepo();
+  try {
+    await runInit(repo, { noLegacy: true });
+
+    assert.equal(existsSync(join(repo, ".claude", "skills", "mr-document", "SKILL.md")), true);
+    assert.equal(existsSync(join(repo, ".gemini")), false);
+    assert.equal(existsSync(join(repo, ".kilo")), false);
+  } finally {
+    rmSync(repo, { recursive: true, force: true });
+  }
+});
