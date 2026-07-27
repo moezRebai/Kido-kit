@@ -25,13 +25,13 @@ test("kido init scaffolds kido/docs, kido/changes, kido/changes/archive, and .cl
     // claude-code.ts's renderer doc comment for why (picker-collision fix).
     assert.deepEqual(
       skillDirs.sort(),
-      ["mr-archive", "mr-continue", "mr-document", "mr-implement", "mr-planify", "mr-review", "mr-specify"].sort()
+      ["mr-archive", "mr-ask", "mr-continue", "mr-document", "mr-implement", "mr-planify", "mr-review", "mr-specify"].sort()
     );
 
     const commandFiles = readdirSync(join(repo, ".claude", "commands", "kido"));
     assert.deepEqual(
       commandFiles.sort(),
-      ["archive.md", "continue.md", "document.md", "implement.md", "planify.md", "review.md", "specify.md"].sort()
+      ["archive.md", "ask.md", "continue.md", "document.md", "implement.md", "planify.md", "review.md", "specify.md"].sort()
     );
   } finally {
     rmSync(repo, { recursive: true, force: true });

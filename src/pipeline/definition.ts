@@ -22,8 +22,9 @@ import { implementStage } from "../skills-content/implement.js";
 import { reviewStage } from "../skills-content/review.js";
 import { archiveStage } from "../skills-content/archive.js";
 import { continueStage } from "../skills-content/continue.js";
+import { buildAskStage } from "../skills-content/ask.js";
 
-export const stages: PipelineStage[] = [
+const otherStages: PipelineStage[] = [
   documentStage,
   specifyStage,
   planifyStage,
@@ -32,3 +33,5 @@ export const stages: PipelineStage[] = [
   archiveStage,
   continueStage,
 ];
+
+export const stages: PipelineStage[] = [...otherStages, buildAskStage(otherStages)];
