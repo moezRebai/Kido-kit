@@ -44,7 +44,7 @@ A visual walkthrough of all 9 pipeline stages (`kido init` → study → spec ×
 
 - npm package `kido`, **TypeScript**, bundled at build time (esbuild) to a single compiled output (`dist/cli.js`) — published `package.json` ships with an **empty runtime `dependencies`** array. devDependencies (TypeScript, esbuild) never ship to consumers.
 - CLI binary: `kido`, exposed via `package.json`'s `bin` field. `kido --version` reads a version baked in at build time (no runtime `package.json` lookup — unreliable across install layouts).
-- v1 targets **Claude Code only** for generated skills/commands, but the internal pipeline definition (`src/pipeline/definition.ts`) stays agent-agnostic (`{name, description, prompt body, required tools, args}` per stage) behind a renderer interface (`src/pipeline/renderers/`), so Gemini CLI/Kilo Code support can be added later as new renderers without touching the core.
+- Generated skills/commands target **Claude Code, Gemini CLI, and Kilo Code**, chosen per `kido init` run via an interactive checkbox (or the `--agents` flag) — no selection is persisted, so each run asks again. The internal pipeline definition (`src/pipeline/definition.ts`) stays agent-agnostic (`{id, description, allowedTools, body}` per stage) behind a renderer interface (`src/pipeline/renderers/`): Claude Code and Gemini CLI each get an auto-invoke skill (`mr-<id>/SKILL.md`) plus an explicit command (`/kido:<id>`); Kilo Code gets a command only (`/kido-<id>`), since it has no auto-invoke mechanism for a narrow single-purpose script.
 - Jira REST calls via built-in `fetch`, no SDK.
 - Jira credentials: user-scoped env vars primary, gitignored `.kido-credentials` file fallback. `kido init` offers to set this up on first run if neither is already configured — writes the file directly, or prints env-var instructions, per the user's choice. Token entry is plaintext. Supports both Jira Cloud (Basic auth, email + API token, `/rest/api/3`, ADF-encoded descriptions) and Server/Data Center (Bearer auth, Personal Access Token, no email, `/rest/api/2`, wiki-markup-encoded descriptions) via `deploymentType`; a self-signed/internal-CA Server/DC instance is handled via the standard `NODE_EXTRA_CA_CERTS` env var (proper fix) or `allowInsecureTls` (last resort, disables TLS verification).
 
@@ -64,12 +64,17 @@ A visual walkthrough of all 9 pipeline stages (`kido init` → study → spec ×
 │       │   └── bug.md                        # bug path only (mutually exclusive with the three above)
 │       └── archive/
 │           └── <change-name>/                # moved here by /kido:archive, same shape as above
-└── .claude/
-    ├── skills/mr-*/SKILL.md                  # generated, orchestration logic (auto-invokable by the model)
-    └── commands/kido/*.md                    # generated, explicit invocation (/kido:*)
+├── .claude/                                  # generated if Claude Code is selected
+│   ├── skills/mr-*/SKILL.md                  # orchestration logic (auto-invokable by the model)
+│   └── commands/kido/*.md                    # explicit invocation (/kido:*)
+├── .gemini/                                  # generated if Gemini CLI is selected
+│   ├── skills/mr-*/SKILL.md                  # orchestration logic (Gemini's native Agent Skills, auto-activated)
+│   └── commands/kido/*.toml                  # explicit invocation (/kido:*)
+└── .kilo/                                    # generated if Kilo Code is selected
+    └── commands/kido-*.md                    # explicit invocation only (/kido-*) — no auto-invoke equivalent
 ```
 
-`kido/changes/` (once archived) is meant to be committed to git — it's the durable, shared record of why the codebase looks the way it does, the whole point of the tool. `.claude/` stays untracked; it's fully regeneratable via `kido init`, nothing is lost by not committing it.
+`kido/changes/` (once archived) is meant to be committed to git — it's the durable, shared record of why the codebase looks the way it does, the whole point of the tool. `.claude/`, `.gemini/`, and `.kilo/` all stay untracked; each is fully regeneratable via `kido init`, nothing is lost by not committing them.
 
 **Why skills are `mr-*` and not `kido-*`**: Claude Code's `/` picker lists skills by their own folder name alongside commands. If both shared the "kido" prefix, typing `/kido` would surface both the skill (`kido-spec`) and the command (`kido:spec`) for every stage — 12 near-duplicate-looking entries for 6 stages. Commands stay `/kido:*`; only the skill folder prefix changed, to `mr-*`. Mirrors openspec's own `openspec-explore` (skill) / `opsx:explore` (command) split — no shared prefix, no collision.
 
@@ -113,7 +118,6 @@ All of the above are prompt patterns, adapted into Kido's own skill content — 
 
 ## Scope explicitly excluded from v1
 
-- Gemini CLI / Kilo Code renderers (architecture supports adding them later) — Claude Code only for now.
 - Cross-microservice functional specs spanning multiple stores — one store per microservice, owner-microservice model only.
 - Same-session BA+Dev live collaboration — async handoff only, the artifact chain is the communication.
 - General bidirectional/continuous Jira sync — `kido jira pull` (post-implementation revision) exists specifically to materialize a whole change from Jira into a local `kido/changes/<name>/` folder, since BA has no git push access and Jira is the actual BA→Dev transport. It's a one-shot pull-to-materialize operation, not an ongoing two-way sync.
@@ -211,7 +215,7 @@ flowchart TD
 | **BA/Dev handoff & Jira** | **Post-implementation revision**: BA has no git commit/push access, so Jira — not git — is the transport between BA and Dev. `/kido:specify` runs functional-spec grilling, then stops at an explicit **checkpoint** (push now — new Epic or existing Epic? — then continue into design.md now, or stop and wait for Dev?) rather than sliding silently into the design pass — surfaces the BA/Dev handoff instead of hiding it. `functional-spec.md` + `design.md` push to the same Epic (or Story) as a short auto-extracted summary in the description plus the two files themselves as real attachments, since Jira's hierarchy has no separate tier for design.md — pushed at the checkpoint (spec only) and/or after design.md is written (update, not duplicate; re-attaching deletes the stale copy first so nothing accumulates). **Existing-Epic mode** (further post-implementation revision): a small, single-unit feature can nest as one Story under an Epic BA already has (`epicId` frontmatter) instead of getting its own Epic — `/kido:planify` is skipped entirely in that mode, since there's no breakdown. Deliberately scoped: a feature under an existing Epic that *does* need multiple tasks isn't supported yet (would need a way for `kido jira pull` to tell this feature's Stories apart from unrelated ones sharing the same Epic — sketched as a `**Feature:** <key>` marker, not built) — `/kido:specify` should steer that case to "new Epic" instead rather than silently producing something `kido jira pull` can't reconstruct correctly. Default "new Epic" mode is unaffected: `tasks.md` tasks still sync as Stories directly, no sub-task level (#39), `--epic` override for Dev-only/pre-existing Epics. `kido jira pull <key>` is the reverse of all of the above — Dev materializes the whole local change from any Epic/Story/Bug key (detecting a self-contained small-feature Story by its description shape before ever walking to a parent), since BA's output never reaches them via git. Every sync point (either direction) always asks first, never silent (#28). |
 | **Git** | Branch creation moved from `/kido:planify` to `/kido:implement` (post-implementation revision) — BA (who runs `/kido:planify`) has no push access, so creating the branch is Dev's job, done when they pick up a task via `kido jira pull` + `/kido:implement`. Still asked first, `feature/JIRA-ID-slug` or `feature/change-name` fallback (#45-47). Commit/push/PR asked after all tasks done and reviewed, before archive. `kido/changes/` committed separately from code, `.claude/` never committed. |
 | **Apply/Review** | Subagent-per-task dispatch, sequential/parallel per dependency graph (#23, #41). Review = composable pipeline: spec-traceability + standards, per-task AND on-demand (#25, #26, #44) — explicitly performed by the agent, not assumed automatic. |
-| **Build/distribution** | Standalone CLI, independent of openspec, near-zero runtime deps (#12, #13, #15). TypeScript, bundled. Claude Code only for v1, architected for other agents later via a per-agent renderer (#14). CLI does data-ops only; skills hold orchestration logic (#17). Explicit commands alongside skills (#27), skill names deliberately different-prefixed from commands (post-implementation fix). |
+| **Build/distribution** | Standalone CLI, independent of openspec, near-zero runtime deps (#12, #13, #15). TypeScript, bundled. Claude Code, Gemini CLI, and Kilo Code all supported via a per-agent renderer, selected per `kido init` run (#14). CLI does data-ops only; skills hold orchestration logic (#17). Explicit commands alongside skills (#27), skill names deliberately different-prefixed from commands (post-implementation fix). |
 
 ---
 

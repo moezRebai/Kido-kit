@@ -34,7 +34,7 @@ cd your-microservice-repo
 kido init
 ```
 
-This scaffolds `kido/docs/` + `kido/changes/`, generates eight Claude Code skills/commands under `.claude/`, and offers to seed `kido/docs/` from a legacy repo or set up Jira credentials (Cloud or Server/Data Center).
+This scaffolds `kido/docs/` + `kido/changes/`, asks which agent(s) you want to generate skills/commands for (Claude Code, Gemini CLI, Kilo Code — checkbox, space to toggle; pass `--agents claude,gemini` or `--agents all` to skip the prompt), and offers to seed `kido/docs/` from a legacy repo or set up Jira credentials (Cloud or Server/Data Center).
 
 Then, inside Claude Code:
 
@@ -55,7 +55,7 @@ See [`kido-kit.html`](./kido-kit.html) for the full 8-stage walkthrough with act
 
 | Command | What it does |
 |---|---|
-| `kido init` | Scaffold `kido/` + generate skills/commands. |
+| `kido init [--agents <ids>]` | Scaffold `kido/` + generate skills/commands for the chosen agent(s) (`claude`, `gemini`, `kilo`, or `all`). |
 | `kido new-change <name> [--type feature\|bug]` | Start a new change folder. |
 | `kido status --change <name>` / `kido validate --change <name>` | Check artifact completion / readiness to archive. |
 | `kido archive <name>` | Move a change to `kido/changes/archive/`. |
