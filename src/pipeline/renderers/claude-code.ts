@@ -2,6 +2,7 @@ import { join } from "node:path";
 import { ensureDir } from "../../lib/fs-utils.js";
 import type { PipelineStage } from "../definition.js";
 import { writeFileSync } from "node:fs";
+import type { AgentRenderer } from "./types.js";
 
 /**
  * Renders a pipeline stage into Claude Code's two artifact shapes:
@@ -52,3 +53,18 @@ export function renderAllClaudeCodeStages(stages: PipelineStage[], claudeDir: st
     renderClaudeCodeStage(stage, claudeDir);
   }
 }
+
+export const claudeCodeRenderer: AgentRenderer = {
+  id: "claude",
+  label: "Claude Code",
+  render(stages, repoRoot) {
+    const claudeDir = join(repoRoot, ".claude");
+    renderAllClaudeCodeStages(stages, claudeDir);
+    const generated: string[] = [];
+    for (const stage of stages) {
+      generated.push(join(claudeDir, "skills", `mr-${stage.id}`, "SKILL.md"));
+      generated.push(join(claudeDir, "commands", "kido", `${stage.id}.md`));
+    }
+    return generated;
+  },
+};
