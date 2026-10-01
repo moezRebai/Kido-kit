@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TeamFlow Topic States</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: blueprint sheet — one reading column, full-width figures numbered like an architecture dossier */
+:root {
+  --bg: #f3f5f8; --surface: #ffffff; --fg: #18202e; --muted: #5b6577; --line: #d5dbe5;
+  --accent: #2346c9; --team: #b5561f; --gate: #c8901a; --gate-soft: #fbf1dc; --chip: #e7ecf6;
+  --done: #217a52; --done-soft: #e2f3ea; --accent-soft: #e6ecfc;
+  --f-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #10141c; --surface: #171d28; --fg: #e3e8f1; --muted: #98a2b5; --line: #2c3545;
+    --accent: #8ea6ff; --team: #f0a070; --gate: #e5b54a; --gate-soft: #3a2f16; --chip: #212a3a;
+    --done: #6fd3a2; --done-soft: #183428; --accent-soft: #1f2a48; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #10141c; --surface: #171d28; --fg: #e3e8f1; --muted: #98a2b5; --line: #2c3545;
+  --accent: #8ea6ff; --team: #f0a070; --gate: #e5b54a; --gate-soft: #3a2f16; --chip: #212a3a;
+  --done: #6fd3a2; --done-soft: #183428; --accent-soft: #1f2a48; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--f-body); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 1060px; margin: 0 auto; padding-inline: 20px; padding-block: 40px 64px; display: flex; flex-direction: column; gap: 40px; }
+header { display: flex; flex-direction: column; gap: 10px; }
+.eyebrow { font-family: var(--f-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--f-display); font-weight: 800; font-size: clamp(30px, 5vw, 44px); line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+h2 { font-family: var(--f-display); font-weight: 700; font-size: 21px; margin: 0; text-wrap: balance; }
+p { margin: 0; }
+.lead { max-width: 70ch; color: var(--muted); }
+code { font-family: var(--f-mono); font-size: .9em; }
+a { color: var(--accent); }
+section { display: flex; flex-direction: column; gap: 14px; }
+.fig-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.fig-no { font-family: var(--f-mono); font-size: 12px; color: var(--accent); border: 1px solid var(--accent); padding: 1px 7px; border-radius: 3px; }
+figure { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; display: flex; flex-direction: column; }
+.scroll { overflow-x: auto; padding: 18px 14px 6px; }
+figure svg { display: block; width: 100%; min-width: 760px; height: auto; color: var(--fg); }
+figcaption { padding: 10px 18px 16px; color: var(--muted); font-size: 14px; max-width: 82ch; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 12px 18px 0; font-size: 13px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { width: 14px; height: 10px; border-radius: 2px; border: 2px solid currentColor; display: inline-block; }
+.sw.solo { color: var(--accent); } .sw.team { color: var(--team); }
+.sw.gate { width: 10px; height: 10px; background: var(--gate); border: 0; transform: rotate(45deg); border-radius: 1px; }
+.sw.dash { border-style: dashed; color: var(--muted); }
+.sw.out { color: var(--done); background: var(--done-soft); border-width: 1px; }
+
+/* SVG vocabulary */
+.n rect { fill: var(--surface); stroke: var(--muted); stroke-width: 1.2; }
+.n.acc rect { stroke: var(--accent); stroke-width: 2.2; }
+.n.solo rect { stroke: var(--accent); stroke-width: 1.8; }
+.n.team rect { stroke: var(--team); stroke-width: 1.8; }
+.n.opt rect { stroke-dasharray: 5 4; }
+.n.ext rect { fill: var(--chip); stroke: var(--line); }
+.n.store rect { fill: var(--chip); }
+.n.done rect { fill: var(--done-soft); stroke: var(--done); }
+.t { fill: var(--fg); font: 600 13px var(--f-body); }
+.s { fill: var(--muted); font: 400 11px var(--f-mono); }
+.e { stroke: currentColor; stroke-width: 1.3; fill: none; opacity: .75; }
+.e.d { stroke-dasharray: 5 4; }
+.e.solo { stroke: var(--accent); opacity: 1; }
+.e.team { stroke: var(--team); opacity: 1; }
+.lab { fill: var(--muted); font: 500 11px var(--f-mono); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+.lane { font: 700 11px var(--f-mono); letter-spacing: .08em; }
+.lane.solo { fill: var(--accent); } .lane.team { fill: var(--team); } .lane.muted { fill: var(--muted); }
+.gate { fill: var(--gate); }
+
+/* Tables and lists */
+.tbl { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+table { border-collapse: collapse; width: 100%; min-width: 620px; font-size: 14px; }
+th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--f-mono); font-size: 11px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+tr:last-child td { border-bottom: 0; }
+.grp td { background: var(--chip); font-family: var(--f-mono); font-size: 11px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); padding-block: 6px; }
+.pill { font-family: var(--f-mono); font-size: 11px; padding: 1px 7px; border-radius: 10px; border: 1px solid var(--line); white-space: nowrap; }
+.pill.auto { color: var(--accent); border-color: var(--accent); }
+.pill.manual { color: var(--team); border-color: var(--team); }
+.layers { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.layer { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 8px 12px; display: flex; flex-direction: column; min-width: 0; }
+.layer b { font-size: 14px; }
+.layer code { color: var(--muted); font-size: 12px; }
+.layer.win { border-color: var(--accent); }
+.gt { font-family: var(--f-mono); color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">TeamFlow · topic lifecycle</div>
+    <h1>Topic State Machine</h1>
+    <p class="lead">Every topic has a <code>state.md</code>. Phases change only through <code>state.mjs</code>, which refuses a transition when its gate or precondition is missing. Companion to <code>06-artifacts-and-state.md</code>.</p>
+  </header>
+
+  <section>
+    <div class="fig-head"><span class="fig-no">FIG. 1</span><h2>Phases and gates</h2></div>
+    <figure>
+      <div class="legend">
+        <span><i class="sw gate"></i>human gate or enforced precondition</span>
+        <span><i class="sw dash"></i>optional or backward path</span>
+      </div>
+      <div class="scroll">
+        <svg viewBox="0 0 1000 320" role="img" aria-label="A topic starts in groom, moves to spec, optionally visits architecture, then reaches plan after the spec-approved gate, implement after plan-approved, or implement directly when there is no tasks.md; it reaches ship when all tasks are done, reviewed and have a red then green test run, and archived after ship-check; implement can go back to spec, which revokes the gates.">
+          <defs><marker id="s1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
+          <g class="n"><rect x="20" y="150" width="120" height="50" rx="4"/><text class="t" x="80" y="180" text-anchor="middle">groom</text></g>
+          <g class="n"><rect x="180" y="150" width="120" height="50" rx="4"/><text class="t" x="240" y="180" text-anchor="middle">spec</text></g>
+          <g class="n opt"><rect x="180" y="40" width="120" height="44" rx="4"/><text class="t" x="240" y="67" text-anchor="middle">architecture</text></g>
+          <g class="n"><rect x="360" y="150" width="120" height="50" rx="4"/><text class="t" x="420" y="180" text-anchor="middle">plan</text></g>
+          <g class="n acc"><rect x="540" y="150" width="120" height="50" rx="4"/><text class="t" x="600" y="180" text-anchor="middle">implement</text></g>
+          <g class="n"><rect x="720" y="150" width="120" height="50" rx="4"/><text class="t" x="780" y="180" text-anchor="middle">ship</text></g>
+          <g class="n done"><rect x="880" y="150" width="100" height="50" rx="4"/><text class="t" x="930" y="180" text-anchor="middle">archived</text></g>
+
+          <line class="e" x1="140" y1="175" x2="178" y2="175" marker-end="url(#s1)"/>
+          <line class="e d" x1="225" y1="150" x2="225" y2="86" marker-end="url(#s1)"/>
+          <line class="e d" x1="255" y1="84" x2="255" y2="148" marker-end="url(#s1)"/>
+          <text class="lab" x="218" y="124" text-anchor="end">structural</text>
+          <text class="lab" x="262" y="124">back</text>
+
+          <line class="e" x1="300" y1="175" x2="358" y2="175" marker-end="url(#s1)"/>
+          <polygon class="gate" points="330,165 340,175 330,185 320,175"/>
+          <line class="e" x1="480" y1="175" x2="538" y2="175" marker-end="url(#s1)"/>
+          <polygon class="gate" points="510,165 520,175 510,185 500,175"/>
+          <line class="e" x1="660" y1="175" x2="718" y2="175" marker-end="url(#s1)"/>
+          <polygon class="gate" points="690,165 700,175 690,185 680,175"/>
+          <line class="e" x1="840" y1="175" x2="878" y2="175" marker-end="url(#s1)"/>
+          <polygon class="gate" points="860,165 870,175 860,185 850,175"/>
+
+          <path class="e" d="M300 62 L420 62 L420 148" marker-end="url(#s1)"/>
+          <text class="lab" x="428" y="58">spec + architecture approved</text>
+
+          <path class="e" d="M240 200 L240 268 L600 268 L600 202" marker-end="url(#s1)"/>
+          <polygon class="gate" points="420,258 430,268 420,278 410,268"/>
+          <text class="lab" x="420" y="296" text-anchor="middle">spec-approved, no tasks.md</text>
+
+          <path class="e d" d="M580 150 L580 118 L290 118 L290 148" marker-end="url(#s1)"/>
+          <text class="lab" x="436" y="112">spec change · gates revoked</text>
+
+          <text class="lab" x="330" y="222" text-anchor="middle">spec-approved</text>
+          <text class="lab" x="510" y="222" text-anchor="middle">plan-approved</text>
+          <text class="lab" x="690" y="222" text-anchor="middle">tasks done</text>
+          <text class="lab" x="690" y="236" text-anchor="middle">reviewed · TDD</text>
+          <text class="lab" x="860" y="222" text-anchor="middle">ship-check</text>
+        </svg>
+      </div>
+      <figcaption>TDD proof means each task has a recorded failing run (exit code ≠ 0) before a passing run (exit code 0). Ship-check verifies required agents for the current commit, or recorded waivers for non-enforced ones. Rebuild topics follow the same phases; their <em>implement</em> phase means “lots in progress” and they reach <em>ship</em> when every child topic is archived.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <div class="fig-head"><span class="fig-no">TAB. 1</span><h2>What each gate requires</h2></div>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Transition</th><th>Required</th><th>Recorded in state.md</th></tr></thead>
+        <tbody>
+          <tr><td>spec → plan</td><td>User approved the spec</td><td><code>gates: spec-approved</code></td></tr>
+          <tr><td>architecture → plan</td><td>Spec and architecture approved</td><td><code>spec-approved</code>, <code>architecture-approved</code></td></tr>
+          <tr><td>spec → implement</td><td>Spec approved, single task</td><td><code>spec-approved</code></td></tr>
+          <tr><td>plan → implement</td><td>User approved the plan</td><td><code>plan-approved</code></td></tr>
+          <tr><td>implement → ship</td><td>All tasks done, reviewed, with red then green runs</td><td><code>tasks[].tdd</code>, <code>tasks[].reviewed</code></td></tr>
+          <tr><td>ship → archived</td><td>Required agents pass, or waivers for non-enforced ones</td><td><code>checks</code>, <code>waivers</code></td></tr>
+          <tr><td>implement → spec</td><td>A reason</td><td>Gates revoked, kept in the log</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+</body>
+</html>

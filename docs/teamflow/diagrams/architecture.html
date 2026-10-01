@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TeamFlow Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: blueprint sheet — one reading column, full-width figures numbered like an architecture dossier */
+:root {
+  --bg: #f3f5f8; --surface: #ffffff; --fg: #18202e; --muted: #5b6577; --line: #d5dbe5;
+  --accent: #2346c9; --team: #b5561f; --gate: #c8901a; --gate-soft: #fbf1dc; --chip: #e7ecf6;
+  --done: #217a52; --done-soft: #e2f3ea; --accent-soft: #e6ecfc;
+  --f-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #10141c; --surface: #171d28; --fg: #e3e8f1; --muted: #98a2b5; --line: #2c3545;
+    --accent: #8ea6ff; --team: #f0a070; --gate: #e5b54a; --gate-soft: #3a2f16; --chip: #212a3a;
+    --done: #6fd3a2; --done-soft: #183428; --accent-soft: #1f2a48; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #10141c; --surface: #171d28; --fg: #e3e8f1; --muted: #98a2b5; --line: #2c3545;
+  --accent: #8ea6ff; --team: #f0a070; --gate: #e5b54a; --gate-soft: #3a2f16; --chip: #212a3a;
+  --done: #6fd3a2; --done-soft: #183428; --accent-soft: #1f2a48; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--f-body); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 1060px; margin: 0 auto; padding-inline: 20px; padding-block: 40px 64px; display: flex; flex-direction: column; gap: 40px; }
+header { display: flex; flex-direction: column; gap: 10px; }
+.eyebrow { font-family: var(--f-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--f-display); font-weight: 800; font-size: clamp(30px, 5vw, 44px); line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+h2 { font-family: var(--f-display); font-weight: 700; font-size: 21px; margin: 0; text-wrap: balance; }
+p { margin: 0; }
+.lead { max-width: 70ch; color: var(--muted); }
+code { font-family: var(--f-mono); font-size: .9em; }
+a { color: var(--accent); }
+section { display: flex; flex-direction: column; gap: 14px; }
+.fig-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.fig-no { font-family: var(--f-mono); font-size: 12px; color: var(--accent); border: 1px solid var(--accent); padding: 1px 7px; border-radius: 3px; }
+figure { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; display: flex; flex-direction: column; }
+.scroll { overflow-x: auto; padding: 18px 14px 6px; }
+figure svg { display: block; width: 100%; min-width: 760px; height: auto; color: var(--fg); }
+figcaption { padding: 10px 18px 16px; color: var(--muted); font-size: 14px; max-width: 82ch; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 12px 18px 0; font-size: 13px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { width: 14px; height: 10px; border-radius: 2px; border: 2px solid currentColor; display: inline-block; }
+.sw.solo { color: var(--accent); } .sw.team { color: var(--team); }
+.sw.gate { width: 10px; height: 10px; background: var(--gate); border: 0; transform: rotate(45deg); border-radius: 1px; }
+.sw.dash { border-style: dashed; color: var(--muted); }
+.sw.out { color: var(--done); background: var(--done-soft); border-width: 1px; }
+
+/* SVG vocabulary */
+.n rect { fill: var(--surface); stroke: var(--muted); stroke-width: 1.2; }
+.n.acc rect { stroke: var(--accent); stroke-width: 2.2; }
+.n.solo rect { stroke: var(--accent); stroke-width: 1.8; }
+.n.team rect { stroke: var(--team); stroke-width: 1.8; }
+.n.opt rect { stroke-dasharray: 5 4; }
+.n.ext rect { fill: var(--chip); stroke: var(--line); }
+.n.store rect { fill: var(--chip); }
+.n.done rect { fill: var(--done-soft); stroke: var(--done); }
+.t { fill: var(--fg); font: 600 13px var(--f-body); }
+.s { fill: var(--muted); font: 400 11px var(--f-mono); }
+.e { stroke: currentColor; stroke-width: 1.3; fill: none; opacity: .75; }
+.e.d { stroke-dasharray: 5 4; }
+.e.solo { stroke: var(--accent); opacity: 1; }
+.e.team { stroke: var(--team); opacity: 1; }
+.lab { fill: var(--muted); font: 500 11px var(--f-mono); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+.lane { font: 700 11px var(--f-mono); letter-spacing: .08em; }
+.lane.solo { fill: var(--accent); } .lane.team { fill: var(--team); } .lane.muted { fill: var(--muted); }
+.gate { fill: var(--gate); }
+
+/* Tables and lists */
+.tbl { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+table { border-collapse: collapse; width: 100%; min-width: 620px; font-size: 14px; }
+th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--f-mono); font-size: 11px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+tr:last-child td { border-bottom: 0; }
+.grp td { background: var(--chip); font-family: var(--f-mono); font-size: 11px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); padding-block: 6px; }
+.pill { font-family: var(--f-mono); font-size: 11px; padding: 1px 7px; border-radius: 10px; border: 1px solid var(--line); white-space: nowrap; }
+.pill.auto { color: var(--accent); border-color: var(--accent); }
+.pill.manual { color: var(--team); border-color: var(--team); }
+.layers { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.layer { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 8px 12px; display: flex; flex-direction: column; min-width: 0; }
+.layer b { font-size: 14px; }
+.layer code { color: var(--muted); font-size: 12px; }
+.layer.win { border-color: var(--accent); }
+.gt { font-family: var(--f-mono); color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">TeamFlow · specification diagrams · MVP target: Kilo Code</div>
+    <h1>TeamFlow Architecture</h1>
+    <p class="lead">Everything is a skill. A router picks the right skill or agent, two spec-driven journeys (solo and team) share one method, and every capability reaches workstations as a versioned pack from the company marketplace. Companion to <code>02-architecture.md</code>.</p>
+  </header>
+
+  <section>
+    <div class="fig-head"><span class="fig-no">FIG. 1</span><h2>Components and flows</h2></div>
+    <figure>
+      <div class="scroll">
+        <svg viewBox="0 0 1000 600" role="img" aria-label="The user's message goes through the optional Kilo plugin to the Kilo agent, which invokes the teamflow router skill; the router reads installed pack metadata, configuration and topic state, then launches a journey, a brick or an agent; those call pack scripts that talk to Jira, Bitbucket, Confluence, SonarQube, Checkmarx and Artifactory.">
+          <defs><marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
+          <g class="n"><rect x="40" y="20" width="260" height="44" rx="4"/><text class="t" x="170" y="47" text-anchor="middle">User in Kilo Code</text></g>
+          <g class="n"><rect x="40" y="104" width="260" height="52" rx="4"/><text class="t" x="170" y="126" text-anchor="middle">Kilo plugin chat.message</text><text class="s" x="170" y="144" text-anchor="middle">patterns, no LLM</text></g>
+          <g class="n"><rect x="40" y="196" width="260" height="52" rx="4"/><text class="t" x="170" y="218" text-anchor="middle">Kilo agent</text><text class="s" x="170" y="236" text-anchor="middle">+ global TeamFlow rule</text></g>
+          <g class="n acc"><rect x="40" y="288" width="260" height="52" rx="4"/><text class="t" x="170" y="310" text-anchor="middle">Router skill: teamflow</text><text class="s" x="170" y="328" text-anchor="middle">routes or asks one question</text></g>
+          <line class="e" x1="170" y1="64" x2="170" y2="102" marker-end="url(#a1)"/><text class="lab" x="180" y="88">message</text>
+          <line class="e" x1="170" y1="156" x2="170" y2="194" marker-end="url(#a1)"/><text class="lab" x="180" y="180">context note</text>
+          <line class="e" x1="170" y1="248" x2="170" y2="286" marker-end="url(#a1)"/><text class="lab" x="180" y="272">invokes</text>
+
+          <g class="n ext"><rect x="660" y="20" width="300" height="44" rx="4"/><text class="t" x="810" y="47" text-anchor="middle">Marketplace (Artifactory index)</text></g>
+          <g class="n"><rect x="660" y="104" width="300" height="52" rx="4"/><text class="t" x="810" y="126" text-anchor="middle">Installed packs + packs.lock</text><text class="s" x="810" y="144" text-anchor="middle">global · ~/.kilocode/skills</text></g>
+          <g class="n"><rect x="660" y="196" width="300" height="52" rx="4"/><text class="t" x="810" y="218" text-anchor="middle">teamflow/config.yml + overrides/</text><text class="s" x="810" y="236" text-anchor="middle">templates · checklists · spec types</text></g>
+          <g class="n store"><rect x="660" y="288" width="300" height="52" rx="4"/><text class="t" x="810" y="310" text-anchor="middle">teamflow/changes/&lt;topic&gt;/</text><text class="s" x="810" y="328" text-anchor="middle">state.md · specs · checks/</text></g>
+          <line class="e" x1="810" y1="64" x2="810" y2="102" marker-end="url(#a1)"/><text class="lab" x="820" y="88">tf-packs · sha256 · lock</text>
+          <line class="e" x1="660" y1="130" x2="302" y2="298" marker-end="url(#a1)"/><text class="lab" x="455" y="196">skill metadata</text>
+          <line class="e" x1="660" y1="222" x2="302" y2="314" marker-end="url(#a1)"/><text class="lab" x="470" y="258">config + layers</text>
+          <line class="e" x1="660" y1="314" x2="302" y2="330" marker-end="url(#a1)"/><text class="lab" x="455" y="314">active topic</text>
+
+          <g class="n solo"><rect x="40" y="410" width="280" height="76" rx="4"/><text class="t" x="180" y="434" text-anchor="middle">Journeys</text><text class="s" x="180" y="454" text-anchor="middle">tf-specify · tf-forge (solo)</text><text class="s" x="180" y="472" text-anchor="middle">tf-planify · tf-implement</text></g>
+          <g class="n"><rect x="350" y="410" width="280" height="76" rx="4"/><text class="t" x="490" y="434" text-anchor="middle">Bricks</text><text class="s" x="490" y="454" text-anchor="middle">tf-review · tf-archive · tf-explain</text><text class="s" x="490" y="472" text-anchor="middle">tf-document · tf-architecture</text></g>
+          <g class="n"><rect x="660" y="410" width="300" height="76" rx="4"/><text class="t" x="810" y="434" text-anchor="middle">Agents (on demand)</text><text class="s" x="810" y="454" text-anchor="middle">sonarqube · checkmarx · secrets</text><text class="s" x="810" y="472" text-anchor="middle">sanity · spec-traceability</text></g>
+          <path class="e" d="M170 340 L170 408" marker-end="url(#a1)"/>
+          <path class="e" d="M210 340 L210 372 L490 372 L490 408" marker-end="url(#a1)"/>
+          <path class="e" d="M250 340 L250 362 L810 362 L810 408" marker-end="url(#a1)"/>
+          <text class="lab" x="560" y="356">launches</text>
+          <path class="e d" d="M630 448 L645 448 L645 330 L658 330" marker-end="url(#a1)"/>
+          <text class="lab" x="652" y="400">updates state</text>
+
+          <g class="n"><rect x="40" y="530" width="590" height="48" rx="4"/><text class="t" x="335" y="551" text-anchor="middle">Pack scripts (tested, idempotent)</text><text class="s" x="335" y="568" text-anchor="middle">state · jira · bitbucket · confluence · agents · packs</text></g>
+          <g class="n ext"><rect x="660" y="530" width="300" height="48" rx="4"/><text class="t" x="810" y="551" text-anchor="middle">External systems (DC)</text><text class="s" x="810" y="568" text-anchor="middle">Atlassian DC · Sonar · Checkmarx</text></g>
+          <line class="e" x1="180" y1="486" x2="180" y2="528" marker-end="url(#a1)"/>
+          <line class="e" x1="490" y1="486" x2="490" y2="528" marker-end="url(#a1)"/>
+          <path class="e" d="M760 486 L760 506 L600 506 L600 528" marker-end="url(#a1)"/>
+          <text class="lab" x="200" y="512">call</text>
+          <line class="e" x1="630" y1="554" x2="658" y2="554" marker-end="url(#a1)"/>
+          <text class="lab" x="644" y="596" text-anchor="middle">REST</text>
+        </svg>
+      </div>
+      <figcaption>The rule and the plugin decide nothing: they make sure the <code>teamflow</code> router is invoked with the right context. The router reads only skill metadata. Every write to Jira, Bitbucket or Confluence and every state transition goes through a script, never through a prompt.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <div class="fig-head"><span class="fig-no">FIG. 2</span><h2>SDD workflow: one shared spec, two journeys</h2></div>
+    <figure>
+      <div class="legend">
+        <span><i class="sw solo"></i>solo journey (tf-forge)</span>
+        <span><i class="sw team"></i>team journey (Jira)</span>
+        <span><i class="sw gate"></i>human gate</span>
+        <span><i class="sw dash"></i>optional / handoff</span>
+      </div>
+      <div class="scroll">
+        <svg viewBox="0 0 1000 440" role="img" aria-label="The router launches tf-specify (grooming then spec), with tf-document and tf-architecture as options; after the spec gate, the solo journey runs tf-planify locally, tf-implement and tf-archive; the team journey creates the Jira Epic and Stories, then a developer resumes with tf-implement KEY up to tf-archive with Jira sync; solo can switch to team; state.md tracks every phase.">
+          <defs><marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
+          <g class="n opt"><rect x="15" y="80" width="112" height="48" rx="4"/><text class="t" x="71" y="101" text-anchor="middle">tf-document</text><text class="s" x="71" y="118" text-anchor="middle">if docs empty</text></g>
+          <g class="n opt"><rect x="140" y="80" width="160" height="48" rx="4"/><text class="t" x="220" y="101" text-anchor="middle">tf-architecture</text><text class="s" x="220" y="118" text-anchor="middle">if structural</text></g>
+          <g class="n acc"><rect x="20" y="180" width="100" height="44" rx="4"/><text class="t" x="70" y="207" text-anchor="middle">teamflow</text></g>
+          <g class="n"><rect x="150" y="172" width="150" height="60" rx="4"/><text class="t" x="225" y="196" text-anchor="middle">tf-specify</text><text class="s" x="225" y="215" text-anchor="middle">groom → spec</text></g>
+          <line class="e" x1="120" y1="202" x2="148" y2="202" marker-end="url(#a2)"/>
+          <line class="e d" x1="70" y1="180" x2="70" y2="130" marker-end="url(#a2)"/>
+          <line class="e d" x1="225" y1="172" x2="225" y2="130" marker-end="url(#a2)"/>
+          <polygon class="gate" points="350,188 364,202 350,216 336,202"/>
+          <line class="e" x1="300" y1="202" x2="334" y2="202" marker-end="url(#a2)"/>
+          <text class="lab" x="350" y="240" text-anchor="middle">spec approved</text>
+          <text class="lab" x="350" y="255" text-anchor="middle">solo or team?</text>
+
+          <text class="lane solo" x="400" y="54">SOLO · TF-FORGE · ONE SESSION</text>
+          <g class="n solo"><rect x="400" y="70" width="130" height="56" rx="4"/><text class="t" x="465" y="94" text-anchor="middle">tf-planify</text><text class="s" x="465" y="112" text-anchor="middle">local plan</text></g>
+          <polygon class="gate" points="560,84 574,98 560,112 546,98"/>
+          <g class="n solo"><rect x="590" y="70" width="180" height="56" rx="4"/><text class="t" x="680" y="94" text-anchor="middle">tf-implement</text><text class="s" x="680" y="112" text-anchor="middle">TDD + review per task</text></g>
+          <polygon class="gate" points="795,84 809,98 795,112 781,98"/>
+          <g class="n solo"><rect x="825" y="70" width="155" height="56" rx="4"/><text class="t" x="902" y="94" text-anchor="middle">tf-archive</text><text class="s" x="902" y="112" text-anchor="middle">docs · commit · PR</text></g>
+          <path class="e solo" d="M350 188 L350 98 L398 98" marker-end="url(#a2)"/><text class="lab" x="358" y="150">solo</text>
+          <line class="e solo" x1="530" y1="98" x2="544" y2="98" marker-end="url(#a2)"/>
+          <line class="e solo" x1="574" y1="98" x2="588" y2="98" marker-end="url(#a2)"/>
+          <line class="e solo" x1="770" y1="98" x2="779" y2="98" marker-end="url(#a2)"/>
+          <line class="e solo" x1="809" y1="98" x2="823" y2="98" marker-end="url(#a2)"/>
+          <line class="e d" x1="455" y1="126" x2="455" y2="288" marker-end="url(#a2)"/>
+          <text class="lab" x="463" y="210">switch to team</text>
+
+          <g class="n team"><rect x="400" y="290" width="100" height="56" rx="4"/><text class="t" x="450" y="314" text-anchor="middle">tf-jira</text><text class="s" x="450" y="332" text-anchor="middle">Epic</text></g>
+          <g class="n team"><rect x="520" y="290" width="120" height="56" rx="4"/><text class="t" x="580" y="314" text-anchor="middle">tf-planify</text><text class="s" x="580" y="332" text-anchor="middle">Jira Stories</text></g>
+          <g class="n team"><rect x="690" y="290" width="160" height="56" rx="4"/><text class="t" x="770" y="314" text-anchor="middle">tf-implement KEY</text><text class="s" x="770" y="332" text-anchor="middle">pull · TDD · review</text></g>
+          <polygon class="gate" points="872,304 886,318 872,332 858,318"/>
+          <g class="n team"><rect x="896" y="290" width="100" height="56" rx="4"/><text class="t" x="946" y="314" text-anchor="middle">tf-archive</text><text class="s" x="946" y="332" text-anchor="middle">+ Jira sync</text></g>
+          <path class="e team" d="M350 216 L350 318 L398 318" marker-end="url(#a2)"/><text class="lab" x="358" y="300">team</text>
+          <line class="e team" x1="500" y1="318" x2="518" y2="318" marker-end="url(#a2)"/>
+          <line class="e team d" x1="640" y1="318" x2="688" y2="318" marker-end="url(#a2)"/>
+          <text class="lab" x="665" y="364" text-anchor="middle">dev handoff</text>
+          <line class="e team" x1="850" y1="318" x2="856" y2="318" marker-end="url(#a2)"/>
+          <line class="e team" x1="886" y1="318" x2="894" y2="318" marker-end="url(#a2)"/>
+          <text class="lane team" x="400" y="368">TEAM · HANDOFF THROUGH JIRA</text>
+          <g class="n store"><rect x="150" y="390" width="830" height="36" rx="4"/><text class="s" x="565" y="413" text-anchor="middle">state.md — mode · phase · decisions · tasks · gates · Jira keys — updated by state.mjs at every phase</text></g>
+        </svg>
+      </div>
+      <figcaption>Grooming and spec are identical in both journeys; the solo/team question comes after the spec is approved (unless <code>defaultMode</code> is set). Both journeys write the same files, so a topic can switch from solo to team at any time.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <div class="fig-head"><span class="fig-no">FIG. 3</span><h2>On-demand agents</h2></div>
+    <figure>
+      <div class="scroll">
+        <svg viewBox="0 0 1000 280" role="img" aria-label="A precise request such as run a Sonar analysis goes through the router to tf-agent-sonarqube, which reads the CI result and writes a report; the explicit /tf-agent-sonarqube call bypasses the router; a broad request such as check everything before the PR runs the pre-pr group, whose four agents run in parallel and produce one aggregated report.">
+          <defs><marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
+          <g class="n"><rect x="20" y="50" width="170" height="44" rx="4"/><text class="t" x="105" y="77" text-anchor="middle">“Run a Sonar analysis”</text></g>
+          <g class="n acc"><rect x="230" y="50" width="110" height="44" rx="4"/><text class="t" x="285" y="77" text-anchor="middle">teamflow</text></g>
+          <g class="n"><rect x="380" y="50" width="170" height="44" rx="4"/><text class="t" x="465" y="77" text-anchor="middle">tf-agent-sonarqube</text></g>
+          <g class="n ext"><rect x="590" y="50" width="150" height="44" rx="4"/><text class="t" x="665" y="77" text-anchor="middle">SonarQube (CI result)</text></g>
+          <g class="n store"><rect x="780" y="50" width="200" height="44" rx="4"/><text class="t" x="880" y="69" text-anchor="middle">checks/…sonarqube.md</text><text class="s" x="880" y="85" text-anchor="middle">summary + proposed fixes</text></g>
+          <line class="e" x1="190" y1="72" x2="228" y2="72" marker-end="url(#a3)"/>
+          <line class="e" x1="340" y1="72" x2="378" y2="72" marker-end="url(#a3)"/>
+          <line class="e" x1="550" y1="72" x2="588" y2="72" marker-end="url(#a3)"/><text class="lab" x="569" y="110" text-anchor="middle">reads</text>
+          <line class="e" x1="740" y1="72" x2="778" y2="72" marker-end="url(#a3)"/>
+          <path class="e d" d="M105 50 L105 22 L465 22 L465 48" marker-end="url(#a3)"/>
+          <text class="lab" x="285" y="17" text-anchor="middle">direct call: /tf-agent-sonarqube</text>
+
+          <g class="n"><rect x="20" y="170" width="170" height="44" rx="4"/><text class="t" x="105" y="197" text-anchor="middle">“Check all before the PR”</text></g>
+          <g class="n acc"><rect x="230" y="170" width="110" height="44" rx="4"/><text class="t" x="285" y="197" text-anchor="middle">teamflow</text></g>
+          <g class="n"><rect x="380" y="170" width="120" height="44" rx="4"/><text class="t" x="440" y="190" text-anchor="middle">group</text><text class="s" x="440" y="206" text-anchor="middle">pre-pr</text></g>
+          <g class="n"><rect x="545" y="128" width="170" height="28" rx="4"/><text class="s" x="630" y="146" text-anchor="middle">sanity</text></g>
+          <g class="n"><rect x="545" y="164" width="170" height="28" rx="4"/><text class="s" x="630" y="182" text-anchor="middle">spec-traceability</text></g>
+          <g class="n"><rect x="545" y="200" width="170" height="28" rx="4"/><text class="s" x="630" y="218" text-anchor="middle">sonarqube</text></g>
+          <g class="n"><rect x="545" y="236" width="170" height="28" rx="4"/><text class="s" x="630" y="254" text-anchor="middle">checkmarx</text></g>
+          <g class="n store"><rect x="780" y="170" width="200" height="44" rx="4"/><text class="t" x="880" y="189" text-anchor="middle">aggregated report</text><text class="s" x="880" y="205" text-anchor="middle">most severe first</text></g>
+          <line class="e" x1="190" y1="192" x2="228" y2="192" marker-end="url(#a3)"/>
+          <line class="e" x1="340" y1="192" x2="378" y2="192" marker-end="url(#a3)"/>
+          <path class="e" d="M500 192 L520 192 L520 142 L543 142" marker-end="url(#a3)"/>
+          <path class="e" d="M520 178 L543 178" marker-end="url(#a3)"/>
+          <path class="e" d="M520 192 L520 214 L543 214" marker-end="url(#a3)"/>
+          <path class="e" d="M520 214 L520 250 L543 250" marker-end="url(#a3)"/>
+          <text class="lab" x="520" y="122" text-anchor="middle">in parallel</text>
+          <path class="e" d="M715 142 L745 142 L745 250 L715 250"/>
+          <path class="e" d="M715 178 L745 178 M715 214 L745 214"/>
+          <line class="e" x1="745" y1="192" x2="778" y2="192" marker-end="url(#a3)"/>
+        </svg>
+      </div>
+      <figcaption>No agent runs automatically inside a workflow. For SonarQube and Checkmarx the tool decides pass or fail; the agent triages, explains and proposes fixes, and changes nothing without approval. At ship time <code>tf-archive</code> only verifies that required agents have a report for the current commit.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <div class="fig-head"><span class="fig-no">FIG. 4</span><h2>Customization resolution order</h2></div>
+    <div class="layers" role="list" aria-label="Priority order, strongest first">
+      <div class="layer win" role="listitem"><b>Repo overrides</b><code>teamflow/overrides/</code></div><span class="gt">&gt;</span>
+      <div class="layer" role="listitem"><b>Org overrides</b><code>~/.teamflow/org-overrides/</code></div><span class="gt">&gt;</span>
+      <div class="layer" role="listitem"><b>Installed packs</b><code>~/.kilocode/skills/</code></div><span class="gt">&gt;</span>
+      <div class="layer" role="listitem"><b>Core defaults</b><code>teamflow-core</code></div>
+    </div>
+    <p class="lead">The first file found wins. Invariants cannot be overridden: file layout, <code>state.md</code> schema and transitions, human gates, TDD proof, spec-traceability review, integration scripts. Org-enforced packs and agents cannot be disabled.</p>
+  </section>
+
+  <section>
+    <div class="fig-head"><span class="fig-no">TAB. 1</span><h2>Skills at a glance</h2></div>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Skill</th><th>Role</th><th>Invocation</th><th>Side effects</th></tr></thead>
+        <tbody>
+          <tr class="grp"><td colspan="4">Routing</td></tr>
+          <tr><td><code>teamflow</code></td><td>Router: picks the skill, agent or group, or asks one question</td><td><span class="pill auto">auto</span></td><td>none</td></tr>
+          <tr class="grp"><td colspan="4">Journeys</td></tr>
+          <tr><td><code>tf-specify</code></td><td>Grooming + spec (feature, bug, rebuild, custom types); ends with the mode question</td><td><span class="pill auto">auto</span></td><td>files</td></tr>
+          <tr><td><code>tf-forge</code></td><td>Solo end-to-end journey</td><td><span class="pill auto">auto</span></td><td>via other skills</td></tr>
+          <tr><td><code>tf-planify</code></td><td>Tasks (local or Jira Stories), rebuild lots</td><td><span class="pill manual">explicit</span></td><td>files, Jira</td></tr>
+          <tr><td><code>tf-implement</code></td><td>Branch, test-first per task, review per task</td><td><span class="pill manual">explicit</span></td><td>files, git</td></tr>
+          <tr class="grp"><td colspan="4">Bricks</td></tr>
+          <tr><td><code>tf-review</code></td><td>Spec traceability, then team standards</td><td><span class="pill auto">auto</span></td><td>none</td></tr>
+          <tr><td><code>tf-archive</code></td><td>Ship checks, docs refresh, archive, commit, PR, Jira sync</td><td><span class="pill manual">explicit</span></td><td>git, Bitbucket, Jira, Confluence</td></tr>
+          <tr><td><code>tf-document</code></td><td>Grounded project documentation; rebuild mode</td><td><span class="pill auto">auto</span></td><td>teamflow/docs</td></tr>
+          <tr><td><code>tf-architecture</code></td><td>Options, ADRs, C4, migration</td><td><span class="pill auto">auto</span></td><td>teamflow/docs</td></tr>
+          <tr><td><code>tf-explain</code></td><td>Read-only code explanations</td><td><span class="pill auto">auto</span></td><td>none</td></tr>
+          <tr class="grp"><td colspan="4">Integrations and distribution</td></tr>
+          <tr><td><code>tf-jira</code> · <code>tf-bitbucket</code> · <code>tf-confluence</code></td><td>Idempotent scripts for Data Center REST APIs</td><td><span class="pill manual">explicit</span></td><td>external systems</td></tr>
+          <tr><td><code>tf-packs</code></td><td>List, install, update, sync, doctor</td><td><span class="pill manual">explicit</span></td><td>skills folders, packs.lock</td></tr>
+          <tr class="grp"><td colspan="4">Agents (on demand)</td></tr>
+          <tr><td><code>tf-agent-sonarqube</code> · <code>-checkmarx</code> · <code>-secrets</code></td><td>Read tool results, triage, propose fixes</td><td><span class="pill">request / router</span></td><td>read-only</td></tr>
+          <tr><td><code>tf-agent-sanity</code> · <code>-spec-traceability</code></td><td>Fresh-context LLM checks</td><td><span class="pill">request / router</span></td><td>read-only</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+</body>
+</html>

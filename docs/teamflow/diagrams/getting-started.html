@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TeamFlow in Six Requests</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: blueprint sheet — one reading column, full-width figures numbered like an architecture dossier */
+:root {
+  --bg: #f3f5f8; --surface: #ffffff; --fg: #18202e; --muted: #5b6577; --line: #d5dbe5;
+  --accent: #2346c9; --team: #b5561f; --gate: #c8901a; --gate-soft: #fbf1dc; --chip: #e7ecf6;
+  --done: #217a52; --done-soft: #e2f3ea; --accent-soft: #e6ecfc;
+  --f-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #10141c; --surface: #171d28; --fg: #e3e8f1; --muted: #98a2b5; --line: #2c3545;
+    --accent: #8ea6ff; --team: #f0a070; --gate: #e5b54a; --gate-soft: #3a2f16; --chip: #212a3a;
+    --done: #6fd3a2; --done-soft: #183428; --accent-soft: #1f2a48; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #10141c; --surface: #171d28; --fg: #e3e8f1; --muted: #98a2b5; --line: #2c3545;
+  --accent: #8ea6ff; --team: #f0a070; --gate: #e5b54a; --gate-soft: #3a2f16; --chip: #212a3a;
+  --done: #6fd3a2; --done-soft: #183428; --accent-soft: #1f2a48; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--f-body); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 1060px; margin: 0 auto; padding-inline: 20px; padding-block: 40px 64px; display: flex; flex-direction: column; gap: 40px; }
+header { display: flex; flex-direction: column; gap: 10px; }
+.eyebrow { font-family: var(--f-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--f-display); font-weight: 800; font-size: clamp(30px, 5vw, 44px); line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+h2 { font-family: var(--f-display); font-weight: 700; font-size: 21px; margin: 0; text-wrap: balance; }
+p { margin: 0; }
+.lead { max-width: 70ch; color: var(--muted); }
+code { font-family: var(--f-mono); font-size: .9em; }
+a { color: var(--accent); }
+section { display: flex; flex-direction: column; gap: 14px; }
+.fig-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.fig-no { font-family: var(--f-mono); font-size: 12px; color: var(--accent); border: 1px solid var(--accent); padding: 1px 7px; border-radius: 3px; }
+figure { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; display: flex; flex-direction: column; }
+.scroll { overflow-x: auto; padding: 18px 14px 6px; }
+figure svg { display: block; width: 100%; min-width: 760px; height: auto; color: var(--fg); }
+figcaption { padding: 10px 18px 16px; color: var(--muted); font-size: 14px; max-width: 82ch; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 12px 18px 0; font-size: 13px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { width: 14px; height: 10px; border-radius: 2px; border: 2px solid currentColor; display: inline-block; }
+.sw.solo { color: var(--accent); } .sw.team { color: var(--team); }
+.sw.gate { width: 10px; height: 10px; background: var(--gate); border: 0; transform: rotate(45deg); border-radius: 1px; }
+.sw.dash { border-style: dashed; color: var(--muted); }
+.sw.out { color: var(--done); background: var(--done-soft); border-width: 1px; }
+
+/* SVG vocabulary */
+.n rect { fill: var(--surface); stroke: var(--muted); stroke-width: 1.2; }
+.n.acc rect { stroke: var(--accent); stroke-width: 2.2; }
+.n.solo rect { stroke: var(--accent); stroke-width: 1.8; }
+.n.team rect { stroke: var(--team); stroke-width: 1.8; }
+.n.opt rect { stroke-dasharray: 5 4; }
+.n.ext rect { fill: var(--chip); stroke: var(--line); }
+.n.store rect { fill: var(--chip); }
+.n.done rect { fill: var(--done-soft); stroke: var(--done); }
+.t { fill: var(--fg); font: 600 13px var(--f-body); }
+.s { fill: var(--muted); font: 400 11px var(--f-mono); }
+.e { stroke: currentColor; stroke-width: 1.3; fill: none; opacity: .75; }
+.e.d { stroke-dasharray: 5 4; }
+.e.solo { stroke: var(--accent); opacity: 1; }
+.e.team { stroke: var(--team); opacity: 1; }
+.lab { fill: var(--muted); font: 500 11px var(--f-mono); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+.lane { font: 700 11px var(--f-mono); letter-spacing: .08em; }
+.lane.solo { fill: var(--accent); } .lane.team { fill: var(--team); } .lane.muted { fill: var(--muted); }
+.gate { fill: var(--gate); }
+
+/* Tables and lists */
+.tbl { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+table { border-collapse: collapse; width: 100%; min-width: 620px; font-size: 14px; }
+th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--f-mono); font-size: 11px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+tr:last-child td { border-bottom: 0; }
+.grp td { background: var(--chip); font-family: var(--f-mono); font-size: 11px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); padding-block: 6px; }
+.pill { font-family: var(--f-mono); font-size: 11px; padding: 1px 7px; border-radius: 10px; border: 1px solid var(--line); white-space: nowrap; }
+.pill.auto { color: var(--accent); border-color: var(--accent); }
+.pill.manual { color: var(--team); border-color: var(--team); }
+.layers { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.layer { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 8px 12px; display: flex; flex-direction: column; min-width: 0; }
+.layer b { font-size: 14px; }
+.layer code { color: var(--muted); font-size: 12px; }
+.layer.win { border-color: var(--accent); }
+.gt { font-family: var(--f-mono); color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<style>
+.how { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.how div { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.how .k { font-family: var(--f-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+.how span:last-child { color: var(--muted); }
+@media (max-width: 680px) { .how { grid-template-columns: 1fr; } }
+.req { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+.req-top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 14px; }
+.say { font-size: 16px; font-weight: 500; background: var(--accent-soft); padding: 6px 12px; border-radius: 14px 14px 14px 3px; }
+.flow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.step { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 5px; padding: 6px 10px; min-width: 0; }
+.step b { font-family: var(--f-mono); font-size: 13px; font-weight: 500; }
+.step span { font-size: 12.5px; color: var(--muted); }
+.step.router { border-color: var(--accent); } .step.router b { color: var(--accent); }
+.step.gate { background: var(--gate-soft); border-color: var(--gate); } .step.gate b { font-family: var(--f-body); font-weight: 600; }
+.step.out { background: var(--done-soft); border-color: var(--done); } .step.out b { color: var(--done); font-family: var(--f-body); font-weight: 600; }
+.step.opt { border-style: dashed; }
+.arr { color: var(--muted); font-family: var(--f-mono); }
+.note { font-size: 13.5px; color: var(--muted); max-width: 80ch; }
+.anat { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 16px; align-items: start; }
+@media (max-width: 680px) { .anat { grid-template-columns: 1fr; } }
+pre.tree { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; font-family: var(--f-mono); font-size: 13px; line-height: 1.7; overflow-x: auto; }
+pre.tree em { font-style: normal; color: var(--muted); }
+dl { margin: 0; display: flex; flex-direction: column; gap: 10px; }
+dt { font-family: var(--f-mono); font-size: 13px; font-weight: 500; }
+dd { margin: 0; color: var(--muted); font-size: 14px; }
+</style>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">TeamFlow · beginner guide</div>
+    <h1>TeamFlow in Six Requests</h1>
+    <p class="lead">Type what you want in Kilo Code, in plain language. TeamFlow picks the right skills, asks you questions, and asks you to confirm before every important step. Everything TeamFlow can do comes from packs installed from the company marketplace.</p>
+  </header>
+
+  <section class="how" aria-label="How it works">
+    <div><span class="k">1 · You</span><b>Describe what you want</b><span>“Add a CSV export”, “explain this file”…</span></div>
+    <div><span class="k">2 · teamflow</span><b>The router picks a skill</b><span>If unsure, it asks you one question.</span></div>
+    <div><span class="k">3 · Skills</span><b>They work with you</b><span>Questions, proposals, and your confirmation at key moments.</span></div>
+  </section>
+
+  <div class="legend" style="padding:0">
+    <span><i class="sw solo"></i>router</span>
+    <span><i class="sw gate"></i>you confirm</span>
+    <span><i class="sw out"></i>what you get</span>
+    <span><i class="sw dash"></i>if needed</span>
+  </div>
+
+  <article class="req">
+    <div class="req-top"><h2>New feature</h2><span class="say">“Add a CSV export of the price history”</span></div>
+    <div class="flow">
+      <div class="step router"><b>teamflow</b><span>new feature</span></div><span class="arr">→</span>
+      <div class="step"><b>tf-specify</b><span>asks questions, writes the spec</span></div><span class="arr">→</span>
+      <div class="step gate"><b>You approve the spec</b><span>alone or with the team?</span></div><span class="arr">→</span>
+      <div class="step"><b>tf-implement</b><span>test first, then code</span></div><span class="arr">→</span>
+      <div class="step"><b>tf-review</b><span>matches the spec?</span></div><span class="arr">→</span>
+      <div class="step gate"><b>You confirm</b><span>before commit</span></div><span class="arr">→</span>
+      <div class="step"><b>tf-archive</b><span>docs, commit, PR</span></div><span class="arr">→</span>
+      <div class="step out"><b>Code + PR</b><span>and the spec, kept</span></div>
+    </div>
+    <p class="note">With the team: the spec goes to Jira (<code>tf-jira</code>), and a developer later says “implement PROJ-123”.</p>
+  </article>
+
+  <article class="req">
+    <div class="req-top"><h2>Bug fix</h2><span class="say">“VAT is computed wrong for Belgium”</span></div>
+    <div class="flow">
+      <div class="step router"><b>teamflow</b><span>bug</span></div><span class="arr">→</span>
+      <div class="step"><b>tf-specify</b><span>describes the bug and how to reproduce it</span></div><span class="arr">→</span>
+      <div class="step gate"><b>You confirm</b><span>is that the bug?</span></div><span class="arr">→</span>
+      <div class="step"><b>tf-implement</b><span>failing test → fix → passing test</span></div><span class="arr">→</span>
+      <div class="step"><b>tf-review</b></div><span class="arr">→</span>
+      <div class="step"><b>tf-archive</b></div><span class="arr">→</span>
+      <div class="step out"><b>Fix</b><span>+ a test that keeps the bug away</span></div>
+    </div>
+  </article>
+
+  <article class="req">
+    <div class="req-top"><h2>Document a project</h2><span class="say">“Document this service”</span></div>
+    <div class="flow">
+      <div class="step router"><b>teamflow</b><span>documentation</span></div><span class="arr">→</span>
+      <div class="step"><b>tf-document</b><span>reads the code, maps it, details it</span></div><span class="arr">→</span>
+      <div class="step gate"><b>You review</b><span>the open questions</span></div><span class="arr">→</span>
+      <div class="step out"><b>teamflow/docs/</b><span>functional + technical docs</span></div><span class="arr">→</span>
+      <div class="step opt"><b>tf-confluence</b><span>publish, if you want</span></div>
+    </div>
+    <p class="note">Every statement points to a real file. Anything uncertain is listed as a question, never invented.</p>
+  </article>
+
+  <article class="req">
+    <div class="req-top"><h2>Understand some code</h2><span class="say">“Explain how PriceCalculator works”</span></div>
+    <div class="flow">
+      <div class="step router"><b>teamflow</b><span>a question</span></div><span class="arr">→</span>
+      <div class="step"><b>tf-explain</b><span>reads the code and teamflow/docs</span></div><span class="arr">→</span>
+      <div class="step out"><b>An explanation</b><span>nothing is changed</span></div>
+    </div>
+    <p class="note">No workflow, no files. If the discussion reveals a bug or an idea, TeamFlow offers to start the right journey.</p>
+  </article>
+
+  <article class="req">
+    <div class="req-top"><h2>Rebuild a legacy application</h2><span class="say">“We are rewriting the Billing app in .NET 8”</span></div>
+    <div class="flow">
+      <div class="step router"><b>teamflow</b><span>rebuild</span></div><span class="arr">→</span>
+      <div class="step"><b>tf-document</b><span>rebuild mode, on the legacy code</span></div><span class="arr">→</span>
+      <div class="step"><b>tf-architecture</b><span>target, choices, migration</span></div><span class="arr">→</span>
+      <div class="step gate"><b>You approve</b><span>target and steps</span></div><span class="arr">→</span>
+      <div class="step"><b>tf-planify</b><span>split into lots</span></div><span class="arr">→</span>
+      <div class="step out"><b>One feature per lot</b><span>each lot follows “New feature”</span></div>
+    </div>
+    <p class="note">First document what must not be lost, then decide the target, then move lot by lot with the same journey as a feature.</p>
+  </article>
+
+  <article class="req">
+    <div class="req-top"><h2>Add a capability</h2><span class="say">“Install the Checkmarx pack”</span></div>
+    <div class="flow">
+      <div class="step router"><b>teamflow</b><span>capability</span></div><span class="arr">→</span>
+      <div class="step"><b>tf-packs</b><span>finds it in the marketplace, shows what it does</span></div><span class="arr">→</span>
+      <div class="step gate"><b>You confirm</b><span>install</span></div><span class="arr">→</span>
+      <div class="step out"><b>Available now</b><span>“run Checkmarx” works</span></div>
+    </div>
+    <p class="note">Ask “which security agents exist?” to browse. Installed versions are locked in <code>teamflow/packs.lock</code> for the whole team.</p>
+  </article>
+
+  <section>
+    <h2>What is a skill?</h2>
+    <div class="anat">
+      <pre class="tree">tf-jira/
+├── SKILL.md      <em># the instructions</em>
+├── references/   <em># templates, rules</em>
+└── scripts/      <em># the code</em>
+    └── jira.mjs</pre>
+      <dl>
+        <div><dt>SKILL.md</dt><dd>What the skill does and how it must work. This is what the coding agent reads.</dd></div>
+        <div><dt>references/</dt><dd>Spec templates, checklists, team conventions. A team can replace them with its own.</dd></div>
+        <div><dt>scripts/</dt><dd>Code that must always do exactly the same thing: create a Jira ticket, open a Bitbucket pull request, publish to Confluence.</dd></div>
+      </dl>
+    </div>
+  </section>
+</div>
+</body>
+</html>
